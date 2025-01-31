@@ -1,0 +1,99 @@
+## CHAPTER 1: CLASSIFICATION
+
+a) Implement the k-Nearest Neighbors (k-NN) classifier:
+
+# Import KNeighborsClassifier - the k-NN model from sklearn.neighbors
+from sklearn.neighbors import KNeighborsClassifier 
+
+y = churn_df["churn"].values    //target variable
+X = churn_df[["account_length", "customer_service_calls"]].values     //features
+
+# Create a KNN classifier with 6 nearest neighbors
+knn = KNeighborsClassifier(n_neighbors=6)
+
+# Fit the classifier to the data
+knn.fit(X, y)
+
+b) Make predictions using the fitted k-NN model:
+
+import numpy as np
+
+X_new = np.array([[30.0, 17.5],
+                  [107.0, 24.1],
+                  [213.0, 10.9]])
+
+# Predict the labels for X_new
+y_pred = knn.predict(X_new)
+
+# Print the predictions
+print("Predictions: {}".format(y_pred))
+
+c) Splitting the dataset, training the k-NN model, and computing accuracy:
+
+# Import the module
+from sklearn.model_selection import train_test_split
+
+X = churn_df.drop("churn", axis=1).values
+y = churn_df["churn"].values
+
+# Split into training and test sets (stratified to maintain label proportions)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# Create a KNN classifier with 5 neighbors
+knn = KNeighborsClassifier(n_neighbors=5)
+
+# Fit the classifier to the training data
+knn.fit(X_train, y_train)
+
+# Print the accuracy on the test set
+print(knn.score(X_test, y_test))
+
+d) Evaluate model complexity by testing different values of k for k-NN (overfitting/underfitting:
+
+import numpy as np
+
+# Uses np.arange(1, 13) to iterate through k values from 1 to 12 
+neighbors = np.arange(1, 13)
+train_accuracies = {} //Stores training set accuracy for each k.
+test_accuracies = {}  //Stores test set accuracy for each k.
+
+for neighbor in neighbors:
+  
+    # Set up a KNN Classifier with the current number of neighbors
+    knn = KNeighborsClassifier(n_neighbors=neighbor)
+  
+    # Fit the model to the training data
+    knn.fit(X_train, y_train)
+  
+    # Compute accuracy on training and test sets
+    train_accuracies[neighbor] = knn.score(X_train, y_train)
+    test_accuracies[neighbor] = knn.score(X_test, y_test)
+
+# Print results
+print(neighbors, '\n', train_accuracies, '\n', test_accuracies)
+
+e) Visualize the plot:
+
+import matplotlib.pyplot as plt
+
+# Add a title
+plt.title("KNN: Varying Number of Neighbors")
+
+# Plot training accuracies
+plt.plot(neighbors, list(train_accuracies.values()), label="Training Accuracy")
+
+# Plot test accuracies
+plt.plot(neighbors, list(test_accuracies.values()), label="Testing Accuracy")
+
+# Add labels and legend
+plt.xlabel("Number of Neighbors")
+plt.ylabel("Accuracy")
+plt.legend()
+
+# Display the plot
+plt.show()
+
+## CHAPTER 2:
+
+
+## CHAPTER 2: REGRESSION
