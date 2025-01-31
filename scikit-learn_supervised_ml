@@ -93,7 +93,5 @@ plt.legend()
 # Display the plot
 plt.show()
 
-## CHAPTER 2:
-
 
 ## CHAPTER 2: REGRESSION
