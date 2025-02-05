@@ -95,3 +95,576 @@ plt.show()
 
 
 ## CHAPTER 2: REGRESSION
+
+a) Correctly format the feature (X) and target (y) arrays for scikit-learn
+
+import numpy as np
+
+# Create X from the radio column's values
+X = sales_df["radio"].values
+
+# Create y from the sales column's values
+y = sales_df["sales"].values
+
+# Reshape X into a two-dimensional array
+X = X.reshape(-1, 1)
+
+# Check the shape of the features and targets
+print(X.shape, y.shape) // example output: (4546, 1) (4546,)
+
+b) Build the linear regression model
+
+# Import LinearRegression
+from sklearn.linear_model import LinearRegression
+
+# Create X and y
+X = sales_df["radio"].values.reshape(-1, 1)
+y = sales_df["sales"].values
+
+# Create the model
+reg = LinearRegression()
+
+# Fit the model to the data
+reg.fit(X, y)
+
+# Make predictions
+predictions = reg.predict(X)
+
+# Print the first 5 predictions
+print(predictions[:5])
+
+c) Visualizing the linear regression model
+
+# Import matplotlib.pyplot
+import matplotlib.pyplot as plt
+
+# Create scatter plot of actual data points (y against X)
+plt.scatter(X, y, color="blue", label="Actual Data")
+
+# Create line plot of model predictions (predictions against X)
+plt.plot(X, predictions, color="red", label="Regression Line")
+
+# Add labels and legend
+plt.xlabel("Radio Expenditure ($)")
+plt.ylabel("Sales ($)")
+plt.legend()
+
+# Display the plot
+plt.show()
+
+d) Fit and predict using a multiple linear regression model
+
+# Import necessary modules
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+
+# Create X and y arrays
+X = sales_df.drop("sales", axis=1).values  # Select all features except 'sales'
+y = sales_df["sales"].values  # Target variable
+
+# Split the data into training and test sets (30% test size, random state for reproducibility)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Instantiate the model
+reg = LinearRegression()
+
+# Fit the model to the training data
+reg.fit(X_train, y_train)
+
+# Make predictions
+y_pred = reg.predict(X_test)
+
+# Print first 2 predictions vs actual values
+print("Predictions: {}, Actual Values: {}".format(y_pred[:2], y_test[:2]))
+
+e) Evaluate regression performance
+
+# Import necessary module
+from sklearn.metrics import mean_squared_error
+
+# Compute R-squared
+r_squared = reg.score(X_test, y_test)
+
+# Compute RMSE (Root Mean Squared Error)
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+
+# Print the metrics
+print("R^2: {}".format(r_squared))
+print("RMSE: {}".format(rmse))
+
+f) Cross-validation for R squared
+
+# Import the necessary modules
+from sklearn.model_selection import KFold, cross_val_score
+
+# Create a KFold object
+kf = KFold(n_splits=6, shuffle=True, random_state=5)
+
+reg = LinearRegression()
+
+# Compute 6-fold cross-validation scores
+cv_scores = cross_val_score(reg, X, y, cv=kf)
+
+# Print scores
+print(cv_scores)
+
+g) Analyzing cross-validation metrics
+
+# Print the mean
+print(np.mean(cv_results))
+
+# Print the standard deviation
+print(np.std(cv_results))
+
+# Print the 95% confidence interval
+print(np.quantile(cv_results, [0.025, 0.975]))
+
+h) Regularized Regression: Ridge performed over different alpha values
+
+# Import Ridge
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split
+
+# Define features and target variable
+X = sales_df.drop("sales", axis=1).values  # Use all features
+y = sales_df["sales"].values  # Target variable
+
+# Split data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Define alpha values for Ridge regression
+alphas = [0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+ridge_scores = []
+
+for alpha in alphas:
+  
+    # Create a Ridge regression model with the current alpha
+    ridge = Ridge(alpha=alpha)
+  
+    # Fit the model to the training data
+    ridge.fit(X_train, y_train)
+  
+    # Obtain R-squared score on the test set
+    score = ridge.score(X_test, y_test)
+    ridge_scores.append(score)
+
+# Print the R-squared scores for different alpha values
+print(ridge_scores)
+
+i) Lasso regression for features' importance
+
+# Import necessary libraries
+from sklearn.linear_model import Lasso
+import matplotlib.pyplot as plt
+
+# Define X and y
+X = sales_df.drop("sales", axis=1).values  # Use all features
+y = sales_df["sales"].values  # Target variable
+sales_columns = sales_df.drop("sales", axis=1).columns  # Store feature names
+
+# Instantiate a Lasso regression model with alpha = 0.3
+lasso = Lasso(alpha=0.3)
+
+# Fit the model to the data
+lasso.fit(X, y)
+
+# Compute and print the coefficients
+lasso_coef = lasso.coef_
+print(lasso_coef)
+
+# Plot the coefficients as a bar chart
+plt.bar(sales_columns, lasso_coef)
+plt.xticks(rotation=45)  # Rotate x-axis labels for readability
+plt.ylabel("Coefficient Value")
+plt.title("Lasso Regression Coefficients")
+plt.show()
+
+
+## CHAPTER 3: FINE-TUNING YOUR MODEL
+
+a) Prediction classifier
+
+# Import confusion matrix
+from sklearn.metrics import confusion_matrix, classification_report
+
+knn = KNeighborsClassifier(n_neighbors=6)
+
+# Fit the model to the training data
+knn.fit(X_train, y_train)
+
+# Predict the labels of the test data: y_pred
+y_pred = knn.predict(X_test)
+
+# Generate the confusion matrix and classification report
+print(confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+// output:
+<script.py> output:
+    [[116  35]
+     [ 46  34]]
+                  precision    recall  f1-score   support
+    
+               0       0.72      0.77      0.74       151
+               1       0.49      0.42      0.46        80
+    
+        accuracy                           0.65       231
+       macro avg       0.60      0.60      0.60       231
+    weighted avg       0.64      0.65      0.64       231
+
+b) Build a Logistics Regression Model
+
+# Import LogisticRegression
+from sklearn.linear_model import LogisticRegression
+
+# Instantiate the model
+logreg = LogisticRegression()
+
+# Fit the model
+logreg.fit(X_train, y_train)
+
+# Predict probabilities
+y_pred_probs = logreg.predict_proba(X_test)[:, 1]
+
+print(y_pred_probs[:10])
+
+c) ROC Curve
+
+# Import necessary modules
+from sklearn.metrics import roc_curve
+import matplotlib.pyplot as plt
+
+# Generate ROC curve values: fpr, tpr, thresholds
+fpr, tpr, thresholds = roc_curve(y_test, y_pred_probs)
+
+# Plot the diagonal baseline (random classifier)
+plt.plot([0, 1], [0, 1], 'k--')
+
+# Plot the ROC curve
+plt.plot(fpr, tpr)
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve for Diabetes Prediction')
+plt.show()
+
+d) ROC AUC
+
+# Import necessary modules
+from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
+
+# Calculate and print the ROC AUC score
+print("ROC AUC Score:", roc_auc_score(y_test, y_pred_probs))
+
+# Calculate and print the confusion matrix
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+# Calculate and print the classification report
+print("Classification Report:\n", classification_report(y_test, y_pred))
+
+e) Hyperparameter tuning with GridSearchCV
+
+# Import GridSearchCV
+from sklearn.model_selection import GridSearchCV
+
+# Set up the parameter grid
+param_grid = {"alpha": np.linspace(0.00001, 1, 20)}
+
+# Instantiate lasso_cv
+lasso_cv = GridSearchCV(lasso, param_grid, cv=kf)
+
+# Fit to the training data
+lasso_cv.fit(X_train, y_train)
+print("Tuned lasso paramaters: {}".format(lasso_cv.best_params_))
+print("Tuned lasso score: {}".format(lasso_cv.best_score_))
+
+f) Hyperparameter tuning with RandomizedSearchCV
+
+# Import necessary modules
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split, KFold
+import numpy as np
+
+# Define features and target
+X = diabetes_df.drop("diabetes", axis=1).values  # Use all features
+y = diabetes_df["diabetes"].values  # Target variable
+
+# Split data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create a KFold object for cross-validation
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+# Instantiate Logistic Regression model
+logreg = LogisticRegression(solver='liblinear', max_iter=1000)
+
+# Create the parameter space
+params = {
+    "penalty": ["l1", "l2"],
+    "tol": np.linspace(0.0001, 1.0, 50),
+    "C": np.linspace(0.1, 1.0, 50),
+    "class_weight": ["balanced", {0: 0.8, 1: 0.2}]
+}
+
+# Instantiate the RandomizedSearchCV object
+logreg_cv = RandomizedSearchCV(logreg, params, cv=kf, n_iter=20, random_state=42)
+
+# Fit the data to the model
+logreg_cv.fit(X_train, y_train)
+
+# Print the tuned parameters and best accuracy score
+print("Tuned Logistic Regression Parameters: {}".format(logreg_cv.best_params_))
+print("Tuned Logistic Regression Best Accuracy Score: {}".format(logreg_cv.best_score_))
+
+
+## CHAPTER 4: PREPROCESSING AND PIPELINES
+
+a) Creating dummy variables
+
+# Import pandas
+import pandas as pd
+
+# Create dummy variables for the "genre" column while dropping the first category
+music_dummies = pd.get_dummies(music_df, drop_first=True)
+
+# Print the new DataFrame's shape
+print("Shape of music_dummies: {}".format(music_dummies.shape))
+
+b) Ridge regression with categorical features
+
+# Import necessary modules
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import cross_val_score, KFold
+import numpy as np
+import pandas as pd
+
+# Assuming music_df is available, create dummy variables
+music_dummies = pd.get_dummies(music_df, drop_first=True)
+
+# Create X and y
+X = music_dummies.drop("popularity", axis=1).values  # Use all features except target
+y = music_dummies["popularity"].values  # Target variable
+
+# Create a KFold object for cross-validation
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+# Instantiate a Ridge regression model with alpha = 0.2
+ridge = Ridge(alpha=0.2)
+
+# Perform cross-validation using negative mean squared error as the scoring metric
+scores = cross_val_score(ridge, X, y, cv=kf, scoring="neg_mean_squared_error")
+
+# Calculate RMSE (convert negative scores to positive and take the square root)
+rmse = np.sqrt(-scores)
+
+# Print the average RMSE and standard deviation of the target variable
+print("Average RMSE: {}".format(np.mean(rmse)))
+print("Standard Deviation of the target array: {}".format(np.std(y)))
+
+c) Dropping missing data
+
+# Print missing values for each column
+print(music_df.isna().sum().sort_values())
+
+# Remove values where less than 5% are missing
+music_df = music_df.dropna(subset=["genre", "popularity", "loudness", "liveness", "tempo"])
+
+# Convert genre to a binary feature (1 for "Rock", 0 for others)
+music_df["genre"] = np.where(music_df["genre"] == "Rock", 1, 0)
+
+# Print the number of missing values and shape of the dataset
+print(music_df.isna().sum().sort_values())
+print("Shape of the `music_df`: {}".format(music_df.shape))
+
+d) Pipeline for prediction (song genre)
+
+# Import modules
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+
+# Instantiate an imputer
+imputer = SimpleImputer()
+
+# Instantiate a knn model
+knn = KNeighborsClassifier(n_neighbors=3)
+
+# Build steps for the pipeline
+steps = [("imputer", imputer), 
+         ("knn", knn)]
+
+# Create the pipeline
+pipeline = Pipeline(steps)
+
+# Fit the pipeline to the training data
+pipeline.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = pipeline.predict(X_test)
+
+# Print the confusion matrix
+print(confusion_matrix(y_test, y_pred))
+
+e) Centering and Scaling for Regression
+
+# Import StandardScaler
+from sklearn.preprocessing import StandardScaler
+
+# Create pipeline steps
+steps = [("scaler", StandardScaler()),
+         ("lasso", Lasso(alpha=0.5))]
+
+# Instantiate the pipeline
+pipeline = Pipeline(steps)
+pipeline.fit(X_train, y_train)
+
+# Calculate and print R-squared
+print(pipeline.score(X_test, y_test))
+
+# Build the steps
+steps = [("scaler", StandardScaler()),
+         ("logreg", LogisticRegression())]
+pipeline = Pipeline(steps)
+
+# Create the parameter space
+parameters = {"logreg__C": np.linspace(0.001, 1.0, 20)}
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=21)
+
+# Instantiate the grid search object
+cv = GridSearchCV(pipeline, param_grid=parameters)
+
+# Fit to the training data
+cv.fit(X_train, y_train)
+print(cv.best_score_, "\n", cv.best_params_)
+
+f) Visualizing regression model performance 
+
+models = {"Linear Regression": LinearRegression(), "Ridge": Ridge(alpha=0.1), "Lasso": Lasso(alpha=0.1)}
+results = []
+
+# Loop through the models' values
+for model in models.values():
+  kf = KFold(n_splits=6, random_state=42, shuffle=True)
+  
+  # Perform cross-validation
+  cv_scores = cross_val_score(model, X_train, y_train, cv=kf)
+  
+  # Append the results
+  results.append(cv_scores)
+  
+# Create a box plot of the results
+plt.boxplot(results, labels=models.keys())
+plt.show()
+
+g) Predicting on test set
+
+# Import mean_squared_error
+from sklearn.metrics import mean_squared_error
+
+for name, model in models.items():
+  
+  # Fit the model to the training data
+  model.fit(X_train_scaled, y_train)
+  
+  # Make predictions on the test set
+  y_pred = model.predict(X_test_scaled)
+  
+  # Calculate the test_rmse
+  test_rmse = mean_squared_error(y_test, y_pred, squared=False)
+  print("{} Test Set RMSE: {}".format(name, test_rmse))
+
+h) Visualizing classification model performance
+
+# Create models dictionary
+models = {"Logistic Regression": LogisticRegression(), "KNN": KNeighborsClassifier(), "Decision Tree Classifier": DecisionTreeClassifier()}
+results = []
+
+# Loop through the models' values
+for model in models.values():
+  
+  # Instantiate a KFold object
+  kf = KFold(n_splits=6, random_state=12, shuffle=True)
+  
+  # Perform cross-validation
+  cv_results = cross_val_score(model, X_train_scaled, y_train, cv=kf)
+  results.append(cv_results)
+plt.boxplot(results, labels=models.keys())
+plt.show()
+
+i) Build a pipeline to impute missing values, scale features, and perform hyperparameter tuning of a logistic regression model
+
+# Create steps
+steps = [("imp_mean", SimpleImputer()), 
+         ("scaler", StandardScaler()), 
+         ("logreg", LogisticRegression())]
+
+# Set up pipeline
+pipeline = Pipeline(steps)
+params = {"logreg__solver": ["newton-cg", "saga", "lbfgs"],
+         "logreg__C": np.linspace(0.001, 1.0, 10)}
+
+# Create the GridSearchCV object
+tuning = GridSearchCV(pipeline, param_grid=params)
+tuning.fit(X_train, y_train)
+y_pred = tuning.predict(X_test)
+
+# Compute and print performance
+print("Tuned Logistic Regression Parameters: {}, Accuracy: {}".format(tuning.best_params_, tuning.score(X_test, y_test)))
+
+## FINAL PROJECT: AGRICULTURE
+// Identify the single feature that has the strongest predictive performance for classifying crop types.
+
+Find the feature in the dataset that produces the best score for predicting "crop".
+From this information, create a variable called best_predictive_feature, which:
+Should be a dictionary containing the best predictive feature name as a key and the evaluation score (for the metric you chose) as the value.
+
+ANSWER:
+
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
+
+# Load the dataset
+crops = pd.read_csv("soil_measures.csv")
+
+# Write your code here
+
+# Check for missing values
+crops.isna().sum()
+
+# Check how many crops we have, i.e., multi-class target
+crops.crop.unique()
+
+# Split into feature and target sets
+X = crops.drop(columns="crop")
+y = crops["crop"]
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+# Create a dictionary to store the model performance for each feature
+feature_performance = {}
+
+# Train a logistic regression model for each feature
+for feature in ["N", "P", "K", "ph"]:
+    log_reg = LogisticRegression(multi_class="multinomial")
+    log_reg.fit(X_train[[feature]], y_train)
+    y_pred = log_reg.predict(X_test[[feature]])
+    
+    # Calculate F1 score, the harmonic mean of precision and recall
+    # Could also use balanced_accuracy_score
+    f1 = metrics.f1_score(y_test, y_pred, average="weighted")
+    
+    # Add feature-f1 score pairs to the dictionary
+    feature_performance[feature] = f1
+    print(f"F1-score for {feature}: {f1}")
+
+# K produced the best F1 score
+# Store in best_predictive_feature dictionary
+best_predictive_feature = {"K": feature_performance["K"]}
+best_predictive_feature
