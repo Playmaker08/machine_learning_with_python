@@ -280,5 +280,424 @@ for x, y, company in zip(xs, ys, companies):
     plt.annotate(company, (x, y), fontsize=5, alpha=0.75)
 
 
-## CHAPTER 3: 
+## CHAPTER 3: DECORRELATING YOUR DATA AND DIMENSION REDUCTION
 
+a) Visualize and measure the correlation between grain width and length
+
+# Perform the necessary imports
+import matplotlib.pyplot as plt
+from scipy.stats import pearsonr
+
+# Assign the 0th column of grains: width
+width = grains[:,0]
+
+# Assign the 1st column of grains: length
+length = grains[:,1]
+
+# Scatter plot width vs length
+plt.scatter(width, length)
+plt.axis('equal')
+plt.show()
+
+# Calculate the Pearson correlation
+correlation, pvalue = pearsonr(width, length)
+//Output: 0.8604149377143469
+
+# Display the correlation
+print(correlation)
+
+b) Decorrelate the grain measurements using PCA and measure the Pearson correlation after transformation
+
+# Import PCA
+from sklearn.decomposition import PCA
+
+# Create PCA instance: model
+model = PCA()
+
+# Apply the fit_transform method of model to grains: pca_features
+pca_features = model.fit_transform(grains)
+
+# Assign 0th column of pca_features: xs
+xs = pca_features[:,0]
+
+# Assign 1st column of pca_features: ys
+ys = pca_features[:,1]
+
+# Scatter plot xs vs ys
+plt.scatter(xs, ys)
+plt.axis('equal')
+plt.show()
+
+c) Find and visualize the first principal component of the grain data
+
+# Make a scatter plot of the untransformed points
+plt.scatter(grains[:,0], grains[:,1])
+
+# Create a PCA instance: model
+model = PCA()
+
+# Fit model to points
+model.fit(grains)
+
+# Get the mean of the grain samples: mean
+mean = model.mean_
+
+# Get the first principal component: first_pc
+first_pc = model.components_[0,:]
+
+# Plot first_pc as an arrow, starting at mean
+plt.arrow(mean[0], mean[1], first_pc[0], first_pc[1], color='red', width=0.01)
+
+# Keep axes on same scale
+plt.axis('equal')
+
+d) Analyze the variance of PCA features in the fish dataset
+
+# Perform the necessary imports
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+import matplotlib.pyplot as plt
+
+# Create scaler: scaler
+scaler = StandardScaler()
+
+# Create a PCA instance: pca
+pca = PCA()
+
+# Create pipeline: pipeline
+pipeline = make_pipeline(scaler, pca)
+
+# Fit the pipeline to 'samples'
+pipeline.fit(samples)
+
+# Plot the explained variances
+features = range(pca.n_components_)
+
+// Since PCA features 0 and 1 have significant variance, the intrinsic dimension of this dataset appears to be 2
+
+e) Reduce the dimensionality of the fish measurements to 2 components using PCA
+
+# Import PCA
+from sklearn.decomposition import PCA
+
+# Create a PCA instance with 2 components: pca
+pca = PCA(n_components=2)
+
+# Fit the PCA instance to the scaled samples
+pca.fit(scaled_samples)
+
+# Transform the scaled samples: pca_features
+pca_features = pca.transform(scaled_samples)
+
+# Print the shape of pca_features
+print(pca_features.shape)
+
+//Output: (85, 2)
+
+f) Create a TF-IDF word-frequency array from a collection of documents
+
+# Import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Create a TfidfVectorizer: tfidf
+tfidf = TfidfVectorizer() 
+
+# Apply fit_transform to document: csr_mat
+csr_mat = tfidf.fit_transform(documents)
+
+# Print result of toarray() method
+print(csr_mat.toarray())
+
+# Get the words: words
+words = tfidf.get_feature_names()
+
+# Print words
+print(words)
+
+//Output: [[0.51785612 0.         0.         0.68091856 0.51785612 0.        ]
+     [0.         0.         0.51785612 0.         0.51785612 0.68091856]
+     [0.51785612 0.68091856 0.51785612 0.         0.         0.        ]]
+    ['cats', 'chase', 'dogs', 'meow', 'say', 'woof']
+
+g) Build a pipeline that clusters Wikipedia articles using TruncatedSVD and KMeans
+
+# Perform the necessary imports
+from sklearn.decomposition import TruncatedSVD
+from sklearn.cluster import KMeans
+from sklearn.pipeline import make_pipeline
+
+# Create a TruncatedSVD instance: svd
+svd = TruncatedSVD(n_components=50)
+
+# Create a KMeans instance: kmeans
+kmeans = KMeans(n_clusters=6)
+
+# Create a pipeline: pipeline
+pipeline = make_pipeline(svd, kmeans)
+
+h) Cluster Wikipedia articles and examine the results
+
+# Import pandas
+import pandas as pd
+
+# Fit the pipeline to articles
+pipeline.fit(articles)
+
+# Calculate the cluster labels: labels
+labels = pipeline.predict(articles)
+
+# Create a DataFrame aligning labels and titles: df
+df = pd.DataFrame({'label': labels, 'article': titles})
+
+# Display df sorted by cluster label
+print(df.sort_values('label'))
+
+
+## CHAPTER 4: DISCOVERING INTERPRETABLE FEATURES
+
+# Non-Negative Matrix Factorization (NMF) - Definition
+# NMF is a dimensionality reduction technique used to extract hidden patterns from non-negative data. It factorizes a matrix X into two lower-dimensional 
+# matrices W and H such that: X ≈ W * H
+
+# where:
+- X: Original data matrix (e.g., document-term matrix in NLP)
+- W: Basis components (topics or features)
+- H: Coefficients (contribution of each sample to each topic)
+
+# Key Applications:
+# - Topic modeling (e.g., extracting themes from Wikipedia articles)
+# - Image processing (e.g., facial recognition)
+# - Recommendation systems (e.g., movie recommendations)
+
+# Why use NMF?
+# - Ensures all values remain non-negative, leading to more interpretable results
+# - Provides a parts-based representation of data
+# - Useful for feature extraction and latent structure discovery
+
+a) Apply NMF to Wikipedia articles
+
+# Import NMF
+from sklearn.decomposition import NMF
+
+# Create an NMF instance: model
+model = NMF(n_components=6)
+
+# Fit the model to articles
+model.fit(articles)
+
+# Transform the articles: nmf_features
+nmf_features = model.transform(articles)
+
+# Print the NMF features
+print(nmf_features.round(2))
+
+//Output: [[0.   0.   0.   0.   0.   0.44]
+     [0.   0.   0.   0.   0.   0.57]
+     [0.   0.   0.   0.   0.   0.4 ]
+     [0.   0.   0.   0.   0.   0.38]
+     [0.   0.   0.   0.   0.   0.49]
+     [0.01 0.01 0.01 0.03 0.   0.33]
+     [0.   0.   0.02 0.   0.01 0.36]
+     [0.   0.   0.   0.   0.   0.49]
+     [0.02 0.01 0.   0.02 0.03 0.48]
+     [0.01 0.03 0.03 0.07 0.02 0.34]
+     ...
+
+b) Explore the NMF features of Wikipedia articles
+
+# Import pandas
+import pandas as pd
+
+# Create a pandas DataFrame: df
+df = pd.DataFrame(nmf_features, index=titles)
+
+# Print the row for 'Anne Hathaway'
+print(df.loc['Anne Hathaway'])
+
+# Print the row for 'Denzel Washington'
+print(df.loc['Denzel Washington'])
+//Output: Notice that for both actors, the NMF feature 3 has by far the highest value. This means that both articles are reconstructed using mainly the 3rd NMF component
+
+c) Identify the topic of the NMF component associated with actors like Anne Hathaway and Denzel Washington
+
+# Import pandas
+import pandas as pd
+
+# Create a DataFrame: components_df
+components_df = pd.DataFrame(model.components_, columns=words)
+
+# Print the shape of the DataFrame
+print(components_df.shape)
+
+# Select row 3: component
+component = components_df.iloc[3]
+
+# Print result of nlargest
+print(component.nlargest())
+
+//Output:    (6, 13125)
+    film       0.628
+    award      0.253
+    starred    0.245
+    role       0.211
+    actress    0.186
+    Name: 3, dtype: float64
+
+d) Explore and visualize the LED digits datase
+
+# Import pyplot
+from matplotlib import pyplot as plt
+
+# Select the 0th row: digit
+digit = samples[0,:]
+
+# Print digit
+print(digit)
+
+# Reshape digit to a 13x8 array: bitmap
+bitmap = digit.reshape((13, 8))
+
+# Print bitmap
+print(bitmap)
+
+# Use plt.imshow to display bitmap
+plt.imshow(bitmap, cmap='gray', interpolation='nearest')
+plt.colorbar()
+plt.show()
+
+// Output:
+[0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 1. 1. 1. 1. 0. 0. 0. 0. 0. 0. 0. 0. 1. 0.
+     0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 0. 1. 0.
+     0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 0. 1. 0.
+     0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 0. 1. 0. 0. 0. 0. 0. 0. 0. 0. 0.
+     0. 0. 0. 0. 0. 0. 0. 0.]
+    [[0. 0. 0. 0. 0. 0. 0. 0.]
+     [0. 0. 1. 1. 1. 1. 0. 0.]
+     [0. 0. 0. 0. 0. 0. 1. 0.]
+     [0. 0. 0. 0. 0. 0. 1. 0.]
+     [0. 0. 0. 0. 0. 0. 1. 0.]
+     [0. 0. 0. 0. 0. 0. 1. 0.]
+     [0. 0. 0. 0. 0. 0. 0. 0.]
+     [0. 0. 0. 0. 0. 0. 1. 0.]
+     [0. 0. 0. 0. 0. 0. 1. 0.]
+     [0. 0. 0. 0. 0. 0. 1. 0.]
+     [0. 0. 0. 0. 0. 0. 1. 0.]
+     [0. 0. 0. 0. 0. 0. 0. 0.]
+     [0. 0. 0. 0. 0. 0. 0. 0.]]
+
+e) Decompose the LED digits dataset using NMF and visualize the learned components
+
+# Import NMF
+from sklearn.decomposition import NMF
+
+# Create an NMF model: model
+model = NMF(n_components=7)
+
+# Apply fit_transform to samples: features
+features = model.fit_transform(samples)
+
+# Call show_as_image on each component
+for component in model.components_:
+    show_as_image(component)
+
+# Select the 0th row of features: digit_features
+digit_features = features[0,:]
+
+# Print digit_features
+print(digit_features)
+
+f) Verify that PCA doesn't learn meaningful parts like NMF does
+
+# Import PCA
+from sklearn.decomposition import PCA
+
+# Create a PCA instance: model
+model = PCA(n_components=7)
+
+# Apply fit_transform to samples: features
+features = model.fit_transform(samples)
+
+# Call show_as_image on each component
+for component in model.components_:
+    show_as_image(component)
+// Output: Notice that the components of PCA do not represent meaningful parts of images of LED digits!
+
+g) Find Wikipedia articles similar to 'Cristiano Ronaldo' using NMF features and cosine similarity
+
+# Perform the necessary imports
+import pandas as pd
+from sklearn.preprocessing import normalize
+
+# Normalize the NMF features: norm_features
+norm_features = normalize(nmf_features)
+
+# Create a DataFrame: df
+df = pd.DataFrame(norm_features, index=titles)
+
+# Select the row corresponding to 'Cristiano Ronaldo': article
+article = df.loc['Cristiano Ronaldo']
+
+# Compute the dot products: similarities
+similarities = df.dot(article)
+
+# Display those with the largest cosine similarity
+print(similarities.nlargest())
+
+//Output:
+ Cristiano Ronaldo                1.0
+    Franck Ribéry                    1.0
+    Radamel Falcao                   1.0
+    Zlatan Ibrahimović               1.0
+    France national football team    1.0
+    dtype: float64
+
+h) Build a pipeline for recommending musical artists using NMF
+
+# Perform the necessary imports
+from sklearn.decomposition import NMF
+from sklearn.preprocessing import Normalizer, MaxAbsScaler
+from sklearn.pipeline import make_pipeline
+
+# Create a MaxAbsScaler: scaler
+scaler = MaxAbsScaler()
+
+# Create an NMF model: nmf
+nmf = NMF(n_components=20)
+
+# Create a Normalizer: normalizer
+normalizer = Normalizer()
+
+# Create a pipeline: pipeline
+pipeline = make_pipeline(scaler, nmf, normalizer)
+
+# Apply fit_transform to artists: norm_features
+norm_features = pipeline.fit_transform(artists)
+
+i) Recommend musical artists similar to Bruce Springsteen using NMF features and cosine similarity
+
+# Import pandas
+import pandas as pd
+
+# Create a DataFrame: df
+df = pd.DataFrame(norm_features, index=artist_names)
+
+# Select row of 'Bruce Springsteen': artist
+artist = df.loc['Bruce Springsteen']
+
+# Compute cosine similarities: similarities
+similarities = df.dot(artist)
+
+# Display those with highest cosine similarity
+print(similarities.nlargest())
+
+//Output:
+Bruce Springsteen    1.000
+    Neil Young           0.956
+    Van Morrison         0.872
+    Leonard Cohen        0.865
+    Bob Dylan            0.859
+    dtype: float64
+
+
+## FINAL
