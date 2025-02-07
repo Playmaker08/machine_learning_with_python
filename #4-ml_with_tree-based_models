@@ -274,3 +274,171 @@ bc = BaggingClassifier(base_estimator=dt,
                        n_estimators=50,
                        oob_score=True,
                        random_state=1)
+
+d) Evaluating the OOB Score vs. Test Set Score
+
+# Fit bc to the training set 
+bc.fit(X_train, y_train)
+
+# Predict test set labels
+y_pred = bc.predict(X_test)
+
+# Evaluate test set accuracy
+acc_test = accuracy_score(y_test, y_pred)
+
+# Evaluate OOB accuracy
+acc_oob = bc.oob_score_
+
+# Print acc_test and acc_oob
+print('Test set accuracy: {:.3f}, OOB accuracy: {:.3f}'.format(acc_test, acc_oob))
+// Output: Test set accuracy: 0.698, OOB accuracy: 0.702
+
+e) Training a Random Forest Regressor
+
+# Import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor
+
+# Instantiate rf
+rf = RandomForestRegressor(n_estimators=25, random_state=2)
+
+# Fit rf to the training set    
+rf.fit(X_train, y_train)
+
+f) Evaluating the Random Forest Regressor
+
+# Import mean_squared_error as MSE
+from sklearn.metrics import mean_squared_error as MSE
+
+# Predict the test set labels
+y_pred = rf.predict(X_test)
+
+# Evaluate the test set RMSE
+rmse_test = (MSE(y_test, y_pred))**0.5
+
+# Print rmse_test
+print('Test set RMSE of rf: {:.2f}'.format(rmse_test))
+
+g) Visualizing feature importances
+
+# Create a pd.Series of feature importances
+importances = pd.Series(data=rf.feature_importances_, index=X_train.columns)
+
+# Sort importances
+importances_sorted = importances.sort_values()
+
+# Draw a horizontal barplot of importances_sorted
+importances_sorted.plot(kind='barh', color='lightgreen')
+
+# Set title and show the plot
+plt.title('Feature Importances')
+plt.show()
+
+// Output: hr and workingday are the most important features according to rf. The importances of these two features add up to more than 90%!
+
+
+## CHAPTER 4: BOOSTING
+
+a) Defining the AdaBoost Classifier
+
+# Import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+# Import AdaBoostClassifier
+from sklearn.ensemble import AdaBoostClassifier
+
+# Instantiate dt
+dt = DecisionTreeClassifier(max_depth=2, random_state=1)
+
+# Instantiate ada
+ada = AdaBoostClassifier(base_estimator=dt, n_estimators=180, random_state=1)
+
+b) Training the AdaBoost Classifier and computing the probabilities of obtaining the positive class
+
+# Fit ada to the training set
+ada.fit(X_train, y_train)
+
+# Compute the probabilities of obtaining the positive class
+y_pred_proba = ada.predict_proba(X_test)[:, 1]
+
+c) Evaluating the AdaBoost Classifier using the ROC AUC score
+
+# Import roc_auc_score
+from sklearn.metrics import roc_auc_score
+
+# Evaluate test-set roc_auc_score
+ada_roc_auc = roc_auc_score(y_test, y_pred_proba)
+
+# Print roc_auc_score
+print('ROC AUC score: {:.2f}'.format(ada_roc_auc))
+// Output: ROC AUC score: 0.70
+
+d) Defining the Gradient Boosting Regressor
+
+# Import GradientBoostingRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+
+# Instantiate gb
+gb = GradientBoostingRegressor(max_depth=4, 
+                               n_estimators=200, 
+                               random_state=2)
+
+e) Training the Gradient Boosting Regressor and making predictions
+
+# Fit gb to the training set
+gb.fit(X_train, y_train)
+
+# Predict test set labels
+y_pred = gb.predict(X_test)
+
+f) Evaluating the Gradient Boosting Regressor using RMSE
+
+# Import mean_squared_error as MSE
+from sklearn.metrics import mean_squared_error as MSE
+
+# Compute MSE
+mse_test = MSE(y_test, y_pred)
+
+# Compute RMSE
+rmse_test = mse_test**(1/2)
+
+# Print RMSE
+print('Test set RMSE of gb: {:.3f}'.format(rmse_test))
+
+g) Instantiating the Stochastic Gradient Boosting Regressor (SGBR)
+
+# Import GradientBoostingRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+
+# Instantiate sgbr
+sgbr = GradientBoostingRegressor(max_depth=4, 
+                                 subsample=0.9,
+                                 max_features=0.75,
+                                 n_estimators=200,
+                                 random_state=2)
+
+h) Training the Stochastic Gradient Boosting Regressor (SGBR) and making predictions
+
+# Fit sgbr to the training set
+sgbr.fit(X_train, y_train)
+
+# Predict test set labels
+y_pred = sgbr.predict(X_test)
+
+i) Evaluating the Stochastic Gradient Boosting Regressor (SGBR) using RMSE
+
+# Import mean_squared_error as MSE
+from sklearn.metrics import mean_squared_error as MSE
+
+# Compute test set MSE
+mse_test = MSE(y_test, y_pred)
+
+# Compute test set RMSE
+rmse_test = mse_test ** 0.5
+
+# Print rmse_test
+print('Test set RMSE of sgbr: {:.3f}'.format(rmse_test))
+// Output: Test set RMSE of sgbr: 49.621
+
+
+# CHAPTER 5: MODEL TUNING
+
