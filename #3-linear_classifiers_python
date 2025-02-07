@@ -151,5 +151,265 @@ print(lr.coef_)
 
 ## CHAPTER 3: LOGISTICS REGRESSION
 
-a)
+a) Eexplore L2 regularization in logistic regression
 
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
+
+# Train and validation errors initialized as empty lists
+train_errs = []
+valid_errs = []
+
+# Values of C for regularization
+C_values = [0.001, 0.01, 0.1, 1, 10, 100, 1000]
+
+# Loop over values of C
+for C_value in C_values:
+    # Create and fit LogisticRegression model
+    lr = LogisticRegression(C=C_value, solver="lbfgs", max_iter=1000)
+    lr.fit(X_train, y_train)
+
+    # Compute and store error rates
+    train_errs.append(1.0 - lr.score(X_train, y_train))
+    valid_errs.append(1.0 - lr.score(X_valid, y_valid))
+
+# Plot results
+plt.semilogx(C_values, train_errs, label="Train Error")
+plt.semilogx(C_values, valid_errs, label="Validation Error")
+plt.xlabel("Regularization Strength (C)")
+plt.ylabel("Error Rate")
+plt.legend()
+plt.show()
+
+b) Implementation of L1-regularized logistic regression for feature selection
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV
+import numpy as np
+
+# Specify L1 regularization
+lr = LogisticRegression(solver='liblinear', penalty='l1')
+
+# Instantiate GridSearchCV and run the search
+searcher = GridSearchCV(lr, {'C': [0.001, 0.01, 0.1, 1, 10]})
+searcher.fit(X_train, y_train)
+
+# Report the best parameters
+print("Best CV params:", searcher.best_params_)
+
+# Find the number of nonzero coefficients (selected features)
+best_lr = searcher.best_estimator_
+coefs = best_lr.coef_
+
+print("Total number of features:", coefs.size)
+print("Number of selected features:", np.count_nonzero(coefs))
+
+// Output:
+Best CV params: {'C': 1}
+    Total number of features: 2500
+    Number of selected features: 1219
+
+c) Implementation to identify the most positive and negative words based on logistic regression coefficients
+
+import numpy as np
+
+# Get the indices of the sorted coefficients
+inds_ascending = np.argsort(lr.coef_.flatten()) 
+inds_descending = inds_ascending[::-1]
+
+# Print the most positive words
+print("Most positive words: ", end="")
+for i in range(5):
+    print(vocab[inds_descending[i]], end=", ")
+print("\n")
+
+# Print the most negative words
+print("Most negative words: ", end="")
+for i in range(5):
+    print(vocab[inds_ascending[i]], end=", ")
+print("\n")
+
+// Output:
+Most positive words: favorite, superb, noir, knowing, excellent, 
+    
+    Most negative words: worst, disappointing, waste, boring, lame, 
+
+d) Implementation to analyze how regularization strength affects predicted probabilities in logistic regression
+
+# Set the regularization strength
+model = LogisticRegression(C=0.1)
+
+# Fit and plot
+model.fit(X,y)
+plot_classifier(X,y,model,proba=True)
+
+# Predict probabilities on training points
+prob = model.predict_proba(X)
+print("Maximum predicted probability", np.max(prob))
+
+// Output: Maximum predicted probability 0.9352061680350907
+
+e) Implementation to visualize the most and least confident predictions in logistic regression
+
+lr = LogisticRegression()
+lr.fit(X,y)
+
+# Get predicted probabilities
+proba = lr.predict_proba(X)
+
+# Sort the example indices by their maximum probability
+proba_inds = np.argsort(np.max(proba,axis=1))
+
+# Show the most confident (least ambiguous) digit
+show_digit(proba_inds[-1], lr)
+
+# Show the least confident (most ambiguous) digit
+show_digit(proba_inds[0], lr)
+
+f) Implementation to fit and compare one-vs-rest and softmax logistic regression on the handwritten digits dataset
+
+from sklearn.linear_model import LogisticRegression
+
+# Fit one-vs-rest logistic regression classifier
+lr_ovr = LogisticRegression(multi_class='ovr', solver='lbfgs', max_iter=1000)
+lr_ovr.fit(X_train, y_train)
+
+print("OVR training accuracy:", lr_ovr.score(X_train, y_train))
+print("OVR test accuracy    :", lr_ovr.score(X_test, y_test))
+
+# Fit softmax (multinomial) logistic regression classifier
+lr_mn = LogisticRegression(multi_class='multinomial', solver='lbfgs', max_iter=1000)
+lr_mn.fit(X_train, y_train)
+
+print("Softmax training accuracy:", lr_mn.score(X_train, y_train))
+print("Softmax test accuracy    :", lr_mn.score(X_test, y_test))
+
+// Output:
+OVR training accuracy: 0.9970304380103935
+    OVR test accuracy    : 0.9733333333333334
+    Softmax training accuracy: 1.0
+    Softmax test accuracy    : 0.9688888888888889
+
+g) Implementation to visualize multi-class logistic regression and analyze why OVR struggles
+
+from sklearn.linear_model import LogisticRegression
+
+# Print training accuracies
+print("Softmax     training accuracy:", lr_mn.score(X_train, y_train))
+print("One-vs-rest training accuracy:", lr_ovr.score(X_train, y_train))
+
+# Create the binary classifier (class 1 vs. rest)
+lr_class_1 = LogisticRegression(C=100)
+lr_class_1.fit(X_train, y_train == 1)  # Convert to binary (class 1 vs. rest)
+
+# Plot the binary classifier (class 1 vs. rest)
+plot_classifier(X_train, y_train == 1, lr_class_1)
+
+h) Implementation for One-vs-Rest SVM classification
+
+# We'll use SVC instead of LinearSVC from now on
+from sklearn.svm import SVC
+
+# Create and fit the binary classifier (class 1 vs. rest)
+svm_class_1 = SVC()
+svm_class_1.fit(X_train, y_train == 1)  # Convert to binary (class 1 vs. others)
+
+# Plot the classifier
+plot_classifier(X_train, y_train == 1, svm_class_1)
+
+
+## CHAPTER 4: SUPPORT VECTOR MACHINES
+
+a) Analyze the effect of removing non-support vectors in an SVM model
+
+from sklearn.svm import SVC
+
+# Train a linear SVM on the whole dataset
+svm = SVC(kernel="linear")
+svm.fit(X, y)
+plot_classifier(X, y, svm, lims=(11, 15, 0, 6))
+
+# Make a new dataset containing only the support vectors
+print("Number of original examples:", len(X))
+print("Number of support vectors:", len(svm.support_))
+
+X_small = X[svm.support_]  # Keep only support vectors
+y_small = y[svm.support_]
+
+# Train a new SVM using only the support vectors
+svm_small = SVC(kernel="linear")
+svm_small.fit(X_small, y_small)
+plot_classifier(X_small, y_small, svm_small, lims=(11, 15, 0, 6))
+
+// Output:
+Number of original examples: 178
+    Number of support vectors: 81
+
+b) Tuning the gamma hyperparameter using GridSearchCV
+
+from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV
+
+# Instantiate an RBF SVM
+svm = SVC()
+
+# Instantiate the GridSearchCV object and run the search
+parameters = {'gamma': [0.00001, 0.0001, 0.001, 0.01, 0.1]}
+searcher = GridSearchCV(svm, parameters)
+searcher.fit(X, y)
+
+# Report the best parameters
+print("Best CV params:", searcher.best_params_)
+// Output:
+Best CV params: {'gamma': 0.001}
+
+c) Jointly tune gamma and C using GridSearchCV
+
+from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV
+
+# Instantiate an RBF SVM
+svm = SVC()
+
+# Define hyperparameter grid
+parameters = {'C': [0.1, 1, 10], 'gamma': [0.00001, 0.0001, 0.001, 0.01, 0.1]}
+
+# Instantiate GridSearchCV and run the search
+searcher = GridSearchCV(svm, parameters)
+searcher.fit(X_train, y_train)
+
+# Report the best parameters and corresponding score
+print("Best CV params:", searcher.best_params_)
+print("Best CV accuracy:", searcher.best_score_)
+
+# Report the test accuracy using the best parameters
+print("Test accuracy of best grid search hypers:", searcher.score(X_test, y_test))
+//Output: 
+Best CV params: {'C': 1, 'gamma': 0.001}
+    Best CV accuracy: 0.9988826815642458
+    Test accuracy of best grid search hypers: 0.9988876529477196
+
+d) Search over regularization strength and loss function
+
+from sklearn.linear_model import SGDClassifier
+from sklearn.model_selection import GridSearchCV
+
+# We set random_state=0 for reproducibility 
+linear_classifier = SGDClassifier(random_state=0)
+
+# Define hyperparameter grid
+parameters = {'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1], 
+             'loss': ['hinge', 'log_loss']}  # SVM (hinge) vs Logistic Regression (log_loss)
+
+# Instantiate GridSearchCV and run the search
+searcher = GridSearchCV(linear_classifier, parameters, cv=10)
+searcher.fit(X_train, y_train)
+
+# Report the best parameters and corresponding score
+print("Best CV params:", searcher.best_params_)
+print("Best CV accuracy:", searcher.best_score_)
+print("Test accuracy of best grid search hypers:", searcher.score(X_test, y_test))
+// Output:
+Best CV params: {'alpha': 0.001, 'loss': 'hinge'}
+    Best CV accuracy: 0.9490730158730158
+    Test accuracy of best grid search hypers: 0.9611111111111111
