@@ -1,1 +1,111 @@
+## CHAPTER 1: INTRODUCTION TO CLUSTERING
 
+a) Hierarchical clustering of Pokémon sightings
+
+# Import linkage and fcluster functions
+from scipy.cluster.hierarchy import linkage, fcluster
+
+# Use the linkage() function to compute distance
+Z = linkage(df[['x', 'y']], method='ward')
+
+# Generate cluster labels
+df['cluster_labels'] = fcluster(Z, 2, criterion='maxclust')
+
+# Plot the points with seaborn
+sns.scatterplot(x='x', y='y', hue='cluster_labels', data=df, palette='Set1')
+plt.show()
+
+b) K-Means clustering of Pokémon sightings
+
+# Import kmeans and vq functions
+from scipy.cluster.vq import kmeans, vq
+
+# Compute cluster centers (k=2 for two clusters)
+centroids, _ = kmeans(df[['x', 'y']], 2)
+
+# Assign cluster labels
+df['cluster_labels'], _ = vq(df[['x', 'y']], centroids)
+
+# Plot the points with seaborn
+sns.scatterplot(x='x', y='y', hue='cluster_labels', data=df, palette='Set1')
+plt.show()
+
+c) Normalizing football match goal data using whiten()
+
+# Import the whiten function
+from scipy.cluster.vq import whiten
+
+goals_for = [4, 3, 2, 3, 1, 1, 2, 0, 1, 4]
+
+# Use the whiten() function to standardize the data
+scaled_data = whiten(goals_for)
+print(scaled_data)
+
+// Output:
+    [3.07692308 2.30769231 1.53846154 2.30769231 0.76923077 0.76923077
+     1.53846154 0.         0.76923077 3.07692308]
+
+d) Visualizing the normalized data
+
+import matplotlib.pyplot as plt
+
+# Plot original data
+plt.plot(goals_for, label='original')
+
+# Plot scaled data
+plt.plot(scaled_data, label='scaled')
+
+# Show the legend in the plot
+plt.legend()
+
+# Display the plot
+plt.show()
+// Output: scaled data has lower variables
+
+e) Normalizing and visualizing fractional numbers (interest rate changes)
+
+# Import the whiten function
+from scipy.cluster.vq import whiten
+import matplotlib.pyplot as plt
+
+# Prepare data
+rate_cuts = [0.0025, 0.001, -0.0005, -0.001, -0.0005, 0.0025, -0.001, -0.0015, -0.001, 0.0005]
+
+# Use the whiten() function to standardize the data
+scaled_data = whiten(rate_cuts)
+
+# Plot original data
+plt.plot(rate_cuts, label='original')
+
+# Plot scaled data
+plt.plot(scaled_data, label='scaled')
+
+plt.legend()
+plt.show()
+
+f) Normalizing and visualizing FIFA 18 player wage and value data
+
+# Scale wage and value
+fifa['scaled_wage'] = whiten(fifa['eur_wage'])
+fifa['scaled_value'] = whiten(fifa['eur_value'])
+
+# Plot the two columns in a scatter plot
+fifa.plot(x='scaled_wage', y='scaled_value', kind = 'scatter')
+plt.show()
+
+# Check mean and standard deviation of scaled values
+print(fifa[['scaled_wage', 'scaled_value']].describe())
+
+//Output:
+         scaled_wage  scaled_value
+    count      1000.00       1000.00
+    mean          1.12          1.31
+    std           1.00          1.00
+    min           0.00          0.00
+    25%           0.47          0.73
+    50%           0.85          1.02
+    75%           1.41          1.54
+    max           9.11          8.98
+
+
+## CHAPTER 2: 
