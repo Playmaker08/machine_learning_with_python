@@ -349,5 +349,136 @@ plt.show()
 
 ## CHAPTER 4: CLUSTERING IN REAL WORLD
 
-a)
+a) Extracting RGB values from an image
+
+# Import image class of matplotlib
+import matplotlib.image as img
+
+# Read batman image and print dimensions
+batman_image = img.imread('batman.jpg')
+print(batman_image.shape)  # Print dimensions of the image matrix
+
+# Initialize empty lists to store RGB values
+r, g, b = [], [], []
+
+# Store RGB values of all pixels in lists r, g, and b
+for row in batman_image:
+    for temp_r, temp_g, temp_b in row:
+        r.append(temp_r)
+        g.append(temp_g)
+        b.append(temp_b)
+// Output: (57, 90, 3)
+
+b) Finding the optimal number of dominant colors using the Elbow Method
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.cluster.vq import kmeans
+
+# Initialize an empty list to store distortions
+distortions = []
+num_clusters = range(1, 7)
+
+# Create a list of distortions from the kmeans function
+for i in num_clusters:
+    cluster_centers, distortion = kmeans(batman_df[['scaled_red', 'scaled_blue', 'scaled_green']], i)
+    distortions.append(distortion)
+
+# Create a DataFrame with two lists, num_clusters and distortions
+elbow_plot = pd.DataFrame({'num_clusters': num_clusters, 'distortions': distortions})
+
+# Create a line plot of num_clusters and distortions
+sns.lineplot(x='num_clusters', y='distortions', data=elbow_plot)
+plt.xticks(num_clusters)
+plt.xlabel("Number of Clusters")
+plt.ylabel("Distortion")
+plt.title("Elbow Method for Dominant Colors")
+plt.show()
+
+c) Displaying the dominant colors in the Batman image
+
+import matplotlib.pyplot as plt
+
+# Get standard deviations of each color
+r_std, g_std, b_std = batman_df[['red', 'green', 'blue']].std()
+
+# Initialize a list to store RGB values of cluster centers
+colors = []
+
+for cluster_center in cluster_centers:
+    scaled_r, scaled_g, scaled_b = cluster_center
+    # Convert each standardized value to scaled value in the range of 0-1
+    colors.append((
+        scaled_r * r_std / 255,
+        scaled_g * g_std / 255,
+        scaled_b * b_std / 255
+    ))
+
+# Display colors of cluster centers
+plt.imshow([colors])
+plt.axis("off")  # Hide axes for better visualization
+plt.show()
+
+d) Computing the TF-IDF of movie plots
+
+# Import TfidfVectorizer class from sklearn
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Initialize TfidfVectorizer with specified parameters
+tfidf_vectorizer = TfidfVectorizer(min_df=0.1, max_df=0.75, max_features=50, tokenizer=remove_noise)
+
+# Use the .fit_transform() method on the list plots
+tfidf_matrix = tfidf_vectorizer.fit_transform(plots)
+
+e) Finding the top terms in movie clusters using TF-IDF and K-Means clustering
+
+import numpy as np
+from scipy.cluster.vq import kmeans
+
+num_clusters = 2  # Define the number of clusters
+
+# Convert sparse matrix to dense format for k-means processing
+dense_tfidf_matrix = tfidf_matrix.todense()
+
+# Generate cluster centers using the kmeans function
+cluster_centers, distortion = kmeans(dense_tfidf_matrix, num_clusters)
+
+# Generate terms from the tfidf_vectorizer object
+terms = tfidf_vectorizer.get_feature_names_out()
+
+# Print top 3 terms for each cluster
+for i in range(num_clusters):
+    # Create a dictionary mapping terms to their importance in the cluster
+    center_terms = dict(zip(terms, cluster_centers[i]))
+
+    # Sort terms based on importance in descending order
+    sorted_terms = sorted(center_terms, key=center_terms.get, reverse=True)
+
+    # Print the top 3 terms in the cluster
+    print(f"Cluster {i+1} top terms: {sorted_terms[:3]}")
+
+// Output:
+    Cluster 1 top terms: ['father', 'back', 'one']
+    Cluster 2 top terms: ['police', 'man', 'killed']
+
+f) Performing basic checks on clusters in the FIFA 18 dataset
+
+# Print the size of the clusters
+print(fifa.groupby('cluster_labels')['ID'].count())
+
+# Print the mean value of wages in each cluster
+print(fifa.groupby('cluster_labels')['eur_wage'].mean())
+
+// Output:
+    cluster_labels
+    0     83
+    1    107
+    2     60
+    Name: ID, dtype: int64
+    cluster_labels
+    0   132108.43
+    1   130308.41
+    2   117583.33
+    Name: eur_wage, dtype: float64
 
