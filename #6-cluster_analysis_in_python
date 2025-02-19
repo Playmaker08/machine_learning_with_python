@@ -108,4 +108,246 @@ print(fifa[['scaled_wage', 'scaled_value']].describe())
     max           9.11          8.98
 
 
-## CHAPTER 2: 
+## CHAPTER 2: HIERARCHICAL CLUSTERING
+
+a) Hierarchical clustering using the Ward method for Comic-Con footfall data
+
+# Import the fcluster and linkage functions
+from scipy.cluster.hierarchy import fcluster, linkage
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Use the linkage() function
+distance_matrix = linkage(comic_con[['x_scaled', 'y_scaled']], method='ward', metric='euclidean')
+
+# Assign cluster labels
+comic_con['cluster_labels'] = fcluster(distance_matrix, 2, criterion='maxclust')
+
+# Plot clusters
+sns.scatterplot(x='x_scaled', y='y_scaled', hue='cluster_labels', data=comic_con, palette='Set1')
+plt.show()
+
+b) Hierarchical clustering using the single linkage method for Comic-Con footfall data
+
+# Import the fcluster and linkage functions
+from scipy.cluster.hierarchy import fcluster, linkage
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Use the linkage() function with the single method
+distance_matrix = linkage(comic_con[['x_scaled', 'y_scaled']], method='single', metric='euclidean')
+
+# Assign cluster labels
+comic_con['cluster_labels'] = fcluster(distance_matrix, 2, criterion='maxclust')
+
+# Plot clusters
+sns.scatterplot(x='x_scaled', y='y_scaled', hue='cluster_labels', data=comic_con, palette='Set1')
+plt.show()
+
+c) Hierarchical clustering using the complete linkage method for Comic-Con footfall data
+
+# Import the fcluster and linkage functions
+from scipy.cluster.hierarchy import fcluster, linkage
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Use the linkage() function with the complete method
+distance_matrix = linkage(comic_con[['x_scaled', 'y_scaled']], method='complete', metric='euclidean')
+
+# Assign cluster labels
+comic_con['cluster_labels'] = fcluster(distance_matrix, 2, criterion='maxclust')
+
+# Plot clusters
+sns.scatterplot(x='x_scaled', y='y_scaled', hue='cluster_labels', data=comic_con, palette='Set1')
+plt.show()
+
+d) Visualizing clusters using matplotlib
+
+# Import the pyplot class
+import matplotlib.pyplot as plt
+
+# Define a colors dictionary for clusters
+colors = {1: 'red', 2: 'blue'}
+
+# Plot a scatter plot with cluster colors
+comic_con.plot.scatter(x='x_scaled', 
+                        y='y_scaled',
+                        c=comic_con['cluster_labels'].apply(lambda x: colors[x]))
+
+# Show the plot
+plt.show()
+
+e) Visualizing clusters using Seaborn
+
+# Import the seaborn module
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Plot a scatter plot using seaborn
+sns.scatterplot(x='x_scaled', 
+                y='y_scaled', 
+                hue='cluster_labels', 
+                data=comic_con, 
+                palette='Set1')
+
+# Show the plot
+plt.show()
+
+f) Creating a dendrogram using the Comic-Con footfall data
+
+# Import the dendrogram function
+from scipy.cluster.hierarchy import dendrogram
+import matplotlib.pyplot as plt
+
+# Create a dendrogram
+dn = dendrogram(distance_matrix)
+
+# Display the dendrogram
+plt.show()
+
+g) Fitting FIFA 18 defender data into a hierarchical clustering algorithm
+
+# Fit the data into a hierarchical clustering algorithm
+distance_matrix = linkage(fifa[['scaled_sliding_tackle', 'scaled_aggression']], 'ward')
+
+# Assign cluster labels to each row of data
+fifa['cluster_labels'] = fcluster(distance_matrix, 3, criterion='maxclust')
+
+# Display cluster centers of each cluster
+print(fifa[['scaled_sliding_tackle', 'scaled_aggression', 'cluster_labels']].groupby('cluster_labels').mean())
+
+# Create a scatter plot through seaborn
+sns.scatterplot(x='scaled_sliding_tackle', y='scaled_aggression', hue='cluster_labels', data=fifa)
+plt.show()
+
+// Output:
+<script.py> output:
+                    scaled_sliding_tackle  scaled_aggression
+    cluster_labels                                          
+    1                                2.99               4.35
+    2                                0.74               1.94
+    3                                1.34               3.62
+
+
+## CHAPTER 3: K-MEANS CLUSTERING
+
+a) Performing K-means clustering on the Comic-Con dataset
+
+# Import the kmeans and vq functions
+from scipy.cluster.vq import kmeans, vq
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Generate cluster centers (k=2 for two clusters)
+cluster_centers, distortion = kmeans(comic_con[['x_scaled', 'y_scaled']], 2)
+
+# Assign cluster labels
+comic_con['cluster_labels'], distortion_list = vq(comic_con[['x_scaled', 'y_scaled']], cluster_centers)
+
+# Plot clusters
+sns.scatterplot(x='x_scaled', y='y_scaled', hue='cluster_labels', data=comic_con, palette='Set1')
+plt.show()
+
+b) Applying the Elbow Method to find the optimal number of clusters in the Comic-Con dataset
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.cluster.vq import kmeans
+
+# Initialize an empty list to store distortions
+distortions = []
+num_clusters = range(1, 7)
+
+# Create a list of distortions from the kmeans function
+for i in num_clusters:
+    cluster_centers, distortion = kmeans(comic_con[['x_scaled', 'y_scaled']], i)
+    distortions.append(distortion)
+
+# Create a DataFrame with two lists - num_clusters, distortions
+elbow_plot = pd.DataFrame({'num_clusters': num_clusters, 'distortions': distortions})
+
+# Create a line plot of num_clusters and distortions
+sns.lineplot(x='num_clusters', y='distortions', data=elbow_plot)
+plt.xticks(num_clusters)
+plt.xlabel("Number of Clusters")
+plt.ylabel("Distortion")
+plt.title("Elbow Method for Optimal Clusters")
+plt.show()
+// Output: there are two clusters
+
+c) Applying the Elbow Method to a uniformly distributed dataset
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.cluster.vq import kmeans
+
+# Initialize an empty list to store distortions
+distortions = []
+num_clusters = range(2, 7)
+
+# Create a list of distortions from the kmeans function
+for i in num_clusters:
+    cluster_centers, distortion = kmeans(uniform_data[['x_scaled', 'y_scaled']], i)
+    distortions.append(distortion)
+
+# Create a DataFrame with two lists - num_clusters and distortions
+elbow_plot = pd.DataFrame({'num_clusters': num_clusters, 'distortions': distortions})
+
+# Create a line plot of num_clusters and distortions
+sns.lineplot(x='num_clusters', y='distortions', data=elbow_plot)
+plt.xticks(num_clusters)
+plt.xlabel("Number of Clusters")
+plt.ylabel("Distortion")
+plt.title("Elbow Method on Uniform Data")
+plt.show()
+// Output: undetermined # of clusters (elbow not available)
+
+d) Applying K-means clustering to the mouse-like dataset
+
+# Import the kmeans and vq functions
+from scipy.cluster.vq import kmeans, vq
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Generate cluster centers (k=3 for three clusters)
+cluster_centers, distortion = kmeans(mouse[['x_scaled', 'y_scaled']], 3)
+
+# Assign cluster labels
+mouse['cluster_labels'], distortion_list = vq(mouse[['x_scaled', 'y_scaled']], cluster_centers)
+
+# Plot clusters
+sns.scatterplot(x='x_scaled', y='y_scaled', hue='cluster_labels', data=mouse, palette='Set1')
+plt.show()
+
+e) FIFA 18 defender clustering
+
+# Set up a random seed in numpy
+random.seed([1000,2000])
+
+# Fit the data into a k-means algorithm
+cluster_centers,_ = kmeans(fifa[['scaled_def', 'scaled_phy']], 3)
+
+# Assign cluster labels
+fifa['cluster_labels'], _ = vq(fifa[['scaled_def', 'scaled_phy']], cluster_centers)
+
+# Display cluster centers 
+print(fifa[['scaled_def', 'scaled_phy', 'cluster_labels']].groupby('cluster_labels').mean())
+
+# Create a scatter plot through seaborn
+sns.scatterplot(x='scaled_def', y='scaled_phy', hue='cluster_labels', data=fifa)
+plt.show()
+
+// Output: 
+                   scaled_def  scaled_phy
+    cluster_labels                        
+    0                     3.74        8.87
+    1                     1.87        7.08
+    2                     2.10        8.94
+
+
+## CHAPTER 4: CLUSTERING IN REAL WORLD
+
+a)
+
