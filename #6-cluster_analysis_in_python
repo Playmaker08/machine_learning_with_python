@@ -482,3 +482,27 @@ print(fifa.groupby('cluster_labels')['eur_wage'].mean())
     2   117583.33
     Name: eur_wage, dtype: float64
 
+g) Creating clusters of complete FIFA 18 players using K-means
+
+# Create centroids with kmeans for 2 clusters
+cluster_centers,_ = kmeans(fifa[scaled_features], 2)
+
+# Assign cluster labels and print cluster centers
+fifa['cluster_labels'], _ = vq(fifa[scaled_features], cluster_centers)
+print(fifa.groupby('cluster_labels')[scaled_features].mean())
+
+# Plot cluster centers to visualize clusters
+fifa.groupby('cluster_labels')[scaled_features].mean().plot(legend=True, kind='bar')
+plt.show()
+
+# Get the name column of first 5 players in each cluster
+for cluster in fifa['cluster_labels'].unique():
+    print(cluster, fifa[fifa['cluster_labels'] == cluster]['name'].values[:5])
+
+// Output:
+                   scaled_pac  scaled_sho  scaled_pas  scaled_dri  scaled_def  scaled_phy
+    cluster_labels                                                                        
+    0                     6.68        5.43        8.46        8.51        2.50        8.34
+    1                     5.44        3.66        7.17        6.76        3.97        9.21
+    0 ['Cristiano Ronaldo' 'L. Messi' 'Neymar' 'L. Suárez' 'M. Neuer']
+    1 ['Sergio Ramos' 'G. Chiellini' 'D. Godín' 'Thiago Silva' 'M. Hummels']
