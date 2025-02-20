@@ -251,6 +251,9 @@ print(weird_df.corr())
 
 ## CHAPTER 3: FEATURE SELECTION II - SELECTING FOR MODEL ACCURACY
 
+// Notes: A "feature mask" in machine learning is a binary vector or matrix that indicates which features in a dataset should be considered by the model, essentially acting as a filter to selectively include or exclude certain features during training and prediction, allowing the model to focus on the most relevant information and improve its performance; it's often used in feature selection techniques to identify important features and reduce dimensionality. 
+
+
 a) Train a Logistic Regression model to predict whether a person has diabetes
 
 # Fit the scaler on the training features and transform these in one go
@@ -363,5 +366,220 @@ print(f"{acc:.1%} accuracy on test set.")
     Index(['glucose', 'bmi', 'age'], dtype='object')
     80.6% accuracy on test set.
 
-d)
+d) Train a Random Forest Classifier to predict diabetes, evaluate accuracy, and analyze feature importance.
 
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+# Perform a 75% training and 25% test data split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+
+# Fit the random forest model to the training data
+rf = RandomForestClassifier(random_state=0)
+rf.fit(X_train, y_train)
+
+# Calculate the accuracy
+acc = accuracy_score(y_test, rf.predict(X_test))
+
+# Print the importances per feature
+print(dict(zip(X.columns, rf.feature_importances_.round(2))))
+
+# Print accuracy
+print(f"{acc:.1%} accuracy on test set.")
+// Output:     {'pregnant': 0.07, 'glucose': 0.25, 'diastolic': 0.09, 'triceps': 0.09, 'insulin': 0.14, 'bmi': 0.12, 'family': 0.12, 'age': 0.13}
+    79.6% accuracy on test set.
+
+e) Identify the most important features using the trained Random Forest model (rf).
+
+# Create a mask for features importances above the threshold
+mask = rf.feature_importances_ > 0.15
+
+# Prints out the mask
+print(mask)
+// Output:     [False  True False False False False False  True]
+
+# Apply the mask to the feature dataset X
+reduced_X = X.loc[:, mask]
+
+# prints out the selected column names
+print(reduced_X.columns)
+// Output:     Index(['glucose', 'age'], dtype='object')
+
+f) Use Recursive Feature Elimination (RFE) with a Random Forest model to iteratively remove less important features.
+
+# Wrap the feature eliminator around the random forest model
+rfe = RFE(estimator=RandomForestClassifier(), n_features_to_select=2, verbose=1)
+
+# Fit the model to the training data
+rfe.fit(X_train, y_train)
+
+# Create a mask using the support_ attribute of rfe
+mask = rfe.support_
+
+# Apply the mask to the feature dataset X and print the result
+reduced_X = X.loc[:, mask]
+print(reduced_X.columns)
+
+# Set the feature eliminator to remove 2 features on each step
+rfe = RFE(estimator=RandomForestClassifier(), n_features_to_select=2, step=2, verbose=1)
+// Output:
+    Fitting estimator with 8 features.
+    Fitting estimator with 6 features.
+    Fitting estimator with 4 features.
+    Index(['glucose', 'insulin'], dtype='object')
+
+g) Train a LASSO regression model to predict Body Mass Index (BMI) while ensuring features are standardized
+
+from sklearn.linear_model import Lasso
+from sklearn.model_selection import train_test_split
+
+# Set the test size to 30% to get a 70-30% train test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+# Fit the scaler on the training features and transform these in one go
+X_train_std = scaler.fit_transform(X_train)
+
+# Create the Lasso model
+la = Lasso()
+
+# Fit it to the standardized training data
+la.fit(X_train_std, y_train)
+
+h) Evaluate the performance of the trained LASSO regression model by calculating R² and number of features ignored.
+
+# Transform the test set with the pre-fitted scaler
+X_test_std = scaler.transform(X_test)
+
+# Calculate the coefficient of determination (R squared) on X_test_std
+r_squared = la.score(X_test_std, y_test)
+print(f"The model can predict {r_squared:.1%} of the variance in the test set.")
+
+# Create a list that has True values when coefficients equal 0
+zero_coef = la.coef_ == 0
+
+# Calculate how many features have a zero coefficient
+n_ignored = sum(zero_coef)
+print(f"The model has ignored {n_ignored} out of {len(la.coef_)} features.")
+// Output:
+    The model can predict 84.7% of the variance in the test set.
+    The model has ignored 82 out of 91 features.
+
+i) Find the highest value of alpha that keeps the R² score above 98% while minimizing ignored features
+
+# Find the highest alpha value with R-squared above 98%
+la = Lasso(alpha=0.1, random_state=0)
+
+# Fits the model and calculates performance stats
+la.fit(X_train_std, y_train)
+r_squared = la.score(X_test_std, y_test)
+n_ignored_features = sum(la.coef_ == 0)
+
+# Print peformance stats 
+print(f"The model can predict {r_squared:.1%} of the variance in the test set.")
+print(f"{n_ignored_features} out of {len(la.coef_)} features were ignored.")
+// Output:
+    The model can predict 98.3% of the variance in the test set.
+    64 out of 91 features were ignored.
+
+j) Use LassoCV() to automatically find the optimal alpha (regularization strength) for predicting biceps circumference.
+
+from sklearn.linear_model import LassoCV
+
+# Create and fit the LassoCV model on the training set
+lcv = LassoCV(cv=5, random_state=0)  # 5-fold cross-validation
+lcv.fit(X_train, y_train)
+print(f'Optimal alpha = {lcv.alpha_:.3f}')
+
+# Calculate R squared on the test set
+r_squared = lcv.score(X_test, y_test)
+print(f'The model explains {r_squared:.1%} of the test set variance')
+
+# Create a mask for coefficients not equal to zero
+lcv_mask = lcv.coef_ != 0
+print(f'{sum(lcv_mask)} features out of {len(lcv_mask)} selected')
+// Output:
+    Optimal alpha = 0.097
+    The model explains 87.4% of the test set variance
+    22 features out of 32 selected
+
+k) Use Recursive Feature Elimination (RFE) with a Gradient Boosting Regressor to select the top 10 most important features.
+
+from sklearn.feature_selection import RFE
+from sklearn.ensemble import GradientBoostingRegressor
+
+# Select 10 features with RFE on a GradientBoostingRegressor, drop 3 features on each step
+rfe_gb = RFE(estimator=GradientBoostingRegressor(), 
+             n_features_to_select=10, step=3, verbose=1)
+rfe_gb.fit(X_train, y_train)
+
+# Calculate the R squared on the test set
+r_squared = rfe_gb.score(X_test, y_test)
+print(f'The model can explain {r_squared:.1%} of the variance in the test set')
+
+# Assign the support array to gb_mask
+gb_mask = rfe_gb.support_
+// Output:
+    Fitting estimator with 32 features.
+    Fitting estimator with 29 features.
+    Fitting estimator with 26 features.
+    Fitting estimator with 23 features.
+    Fitting estimator with 20 features.
+    Fitting estimator with 17 features.
+    Fitting estimator with 14 features.
+    Fitting estimator with 11 features.
+   The model can explain 85.2% of the variance in the test set
+
+from sklearn.feature_selection import RFE
+from sklearn.ensemble import RandomForestRegressor
+
+# Select 10 features with RFE on a RandomForestRegressor, drop 3 features on each step
+rfe_rf = RFE(estimator=RandomForestRegressor(), 
+             n_features_to_select=10, step=3, verbose=1)
+rfe_rf.fit(X_train, y_train)
+
+# Calculate the R squared on the test set
+r_squared = rfe_rf.score(X_test, y_test)
+print(f'The model can explain {r_squared:.1%} of the variance in the test set')
+
+# Assign the support array to rf_mask
+rf_mask = rfe_rf.support_
+// Output:
+    Fitting estimator with 32 features.
+    Fitting estimator with 29 features.
+    Fitting estimator with 26 features.
+    Fitting estimator with 23 features.
+    Fitting estimator with 20 features.
+    Fitting estimator with 17 features.
+    Fitting estimator with 14 features.
+    Fitting estimator with 11 features.
+    The model can explain 84.4% of the variance in the test set
+
+l) Combine feature selection results from three different models (LassoCV, Random Forest, Gradient Boosting) to create a meta feature mask, 
+then reduce dimensionality and evaluate model performance.
+
+# Sum the votes of the three models
+votes = np.sum([lcv_mask, rf_mask, gb_mask], axis=0)
+// Output:  [0 0 3 3 0 1 0 3 1 0 1 3 1 1 0 0 1 2 1 1 1 1 3 2 1 3 2 1 1 1 1 3]
+
+# Create a mask for features selected by all 3 models
+meta_mask = votes == 3
+// Output:     [False False  True  True False False False  True False False False  True
+     False False False False False False False False False False  True False
+     False  True False False False False False  True]
+
+# Apply the dimensionality reduction on X
+X_reduced = X.loc[:, meta_mask]
+// Output:     Index(['bideltoidbreadth', 'buttockcircumference', 'chestcircumference', 'forearmcircumferenceflexed', 'shouldercircumference', 'thighcircumference', 'BMI'], dtype='object')
+
+# Plug the reduced dataset into a linear regression pipeline
+X_train, X_test, y_train, y_test = train_test_split(X_reduced, y, test_size=0.3, random_state=0)
+lm.fit(scaler.fit_transform(X_train), y_train)
+r_squared = lm.score(scaler.transform(X_test), y_test)
+print(f'The model can explain {r_squared:.1%} of the variance in the test set using {len(lm.coef_)} features.')
+// Output:     The model can explain 86.7% of the variance in the test set using 7 features.
+
+
+## CHAPTER 4:
+
+a)
