@@ -1,1 +1,181 @@
+## CHAPTER 1: INTRODUCTION TO DATA PREPROCESSING
 
+a) Drop specific columns and remove rows with missing values from the dataset.
+
+# Drop the Latitude and Longitude columns from volunteer
+volunteer_cols = volunteer.drop(columns=['Latitude', 'Longitude'])
+
+# Drop rows with missing category_desc values from volunteer_cols
+volunteer_subset = volunteer_cols.dropna(subset=['category_desc'])
+
+# Print out the shape of the subset
+print(volunteer_subset.shape)
+
+b) Convert the hits column from object type to int.
+
+# Print the head of the hits column
+print(volunteer["hits"].head())
+
+# Convert the hits column to type int
+volunteer["hits"] = volunteer["hits"].astype(int)
+
+# Look at the dtypes of the dataset
+print(volunteer.dtypes)
+// Output:
+    0    737
+    1     22
+    2     62
+    3     14
+    4     31
+    Name: hits, dtype: object
+    opportunity_id          int64
+    content_id              int64
+    vol_requests            int64
+    event_time              int64
+    title                  object
+    hits                    int64
+    summary                object
+    is_priority            object
+    category_id           float64
+    category_desc          object
+    amsl                  float64
+    amsl_unit             float64
+    org_title              object
+    org_content_id          int64
+    addresses_count         int64
+    locality               object
+    region                 object
+    postalcode            float64
+    primary_loc           float64
+    display_url            object
+    recurrence_type        object
+    hours                   int64
+    created_date           object
+    last_modified_date     object
+    start_date_date        object
+    end_date_date          object
+    status                 object
+    Latitude              float64
+    Longitude             float64
+    Community Board       float64
+    Community Council     float64
+    Census Tract          float64
+    BIN                   float64
+    BBL                   float64
+    NTA                   float64
+    dtype: object
+
+c) Stratified Sampling: Ensure the training and test sets have the same class distribution for the category_desc column.
+
+# Create a DataFrame with all columns except category_desc
+X = volunteer.drop("category_desc", axis=1)
+
+# Create a category_desc labels dataset
+y = volunteer[["category_desc"]]
+
+# Use stratified sampling to split up the dataset according to the y dataset
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=42)
+
+# Print the category_desc counts from y_train
+print(y_train["category_desc"].value_counts())
+
+// Output:
+# Import the necessary function
+from sklearn.model_selection import train_test_split
+
+# Create a DataFrame with all columns except category_desc
+X = volunteer.drop("category_desc", axis=1)
+
+# Create a category_desc labels dataset
+y = volunteer["category_desc"]
+
+# Use stratified sampling to split up the dataset according to the y dataset
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
+
+# Print the category_desc counts from y_train
+print(y_train.value_counts())
+
+
+## CHAPTER 2: STANDARDIZING DATA
+
+a) Train a k-nearest neighbors (KNN) model on a dataset without normalization and observe the test set accuracy.
+
+# Split the dataset into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=42)
+
+knn = KNeighborsClassifier()
+
+# Fit the knn model to the training data
+knn.fit(X_train, y_train)
+
+# Score the model on the test data
+print(knn.score(X_test, y_test))
+// Output:     0.6888888888888889
+
+b) Reduce the variance of the Proline column in the wine dataset using log normalization.
+
+# Print out the variance of the Proline column
+print(wine['Proline'].var())
+
+# Apply the log normalization function to the Proline column
+wine['Proline_log'] = np.log(wine['Proline'])
+
+# Check the variance of the normalized Proline column
+print(wine['Proline_log'].var())
+// Output:
+    99166.71735542436
+    0.17231366191842012
+
+c) Standardize the Ash, Alcalinity of ash, and Magnesium columns in the wine dataset for better performance in a linear model.
+
+# Import StandardScaler
+from sklearn.preprocessing import StandardScaler
+
+# Create the scaler
+scaler = StandardScaler()
+
+# Subset the DataFrame you want to scale 
+wine_subset = wine[['Ash', 'Alcalinity of ash', 'Magnesium']]
+
+# Apply the scaler to wine_subset
+wine_subset_scaled = scaler.fit_transform(wine_subset)
+
+d) Train and evaluate a K-nearest neighbors (KNN) model on the wine dataset without standardizing the data.
+
+# Split the dataset and labels into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=42)
+
+# Fit the k-nearest neighbors model to the training data
+knn.fit(X_train, y_train)
+
+# Score the model on the test data
+print(knn.score(X_test, y_test))
+//Output:     0.7777777777777778
+
+e) Train and evaluate a K-nearest neighbors (KNN) model on the standardized wine dataset to compare performance with the unscaled version.
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+
+# Split the dataset into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=42)
+
+# Instantiate a StandardScaler
+scaler = StandardScaler()
+
+# Scale the training and test features
+X_train_scaled = scaler.fit_transform(X_train)  # Fit on train, then transform
+X_test_scaled = scaler.transform(X_test)  # Transform test set only (no fitting!)
+
+# Instantiate and fit the k-nearest neighbors model
+knn = KNeighborsClassifier()
+knn.fit(X_train_scaled, y_train)
+
+# Score the model on the test data
+print(knn.score(X_test_scaled, y_test))
+// Output:    0.9333333333333333
+
+## CHAPTER 3: FEATURE ENGINEERING
+
+a)
