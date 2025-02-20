@@ -181,3 +181,187 @@ reduced_df = head_df.loc[:, mask]
 
 print(f"Dimensionality reduced from {head_df.shape[1]} to {reduced_df.shape[1]}.")
 // Output: Dimensionality reduced from 6 to 4.
+
+f) Removing features with many missing values
+
+# Create a boolean mask on whether each feature less than 50% missing values.
+mask = school_df.isna().sum() / len(school_df) < 0.5
+
+# Create a reduced dataset by applying the mask
+reduced_df = school_df.loc[:, mask]
+
+print(school_df.shape)
+print(reduced_df.shape)
+// Output: The number of features went down from 21 to 19.
+
+g) Removing redundant values and visualizing the matrix using seaborn
+
+# Create the correlation matrix
+corr = ansur_df.corr()
+
+# Draw a heatmap of the correlation matrix
+sns.heatmap(corr,  cmap=cmap, center=0, linewidths=1, annot=True, fmt=".2f")
+plt.show()
+
+# Create the correlation matrix
+corr = ansur_df.corr()
+
+# Generate a mask for the upper triangle 
+mask = np.triu(np.ones_like(corr, dtype=bool))
+print(mask)
+
+# Add the mask to the heatmap
+sns.heatmap(corr, mask=mask, cmap=cmap, center=0, linewidths=1, annot=True, fmt=".2f")
+plt.show()
+
+h) Filtering out highly correlated features from a dataset using a correlation matrix
+
+# Calculate the correlation matrix and take the absolute value
+corr_df = ansur_df.corr().abs()
+
+# Create a True/False mask and apply it
+mask = np.triu(np.ones_like(corr_df, dtype=bool))
+tri_df = corr_df.mask(mask)
+
+# List column names of highly correlated features (r > 0.95)
+to_drop = [c for c in tri_df.columns if any(tri_df[c] > 0.95)]
+
+# Drop the features in the to_drop list
+reduced_df = ansur_df.drop(to_drop, axis=1)
+
+print(f"The reduced_df DataFrame has {reduced_df.shape[1]} columns.")
+
+i) CASE: Nuclear Energy and Pool Drownings
+
+# Print the first five lines of weird_df
+print(weird_df.head())
+
+# Put nuclear energy production on the x-axis and the number of pool drownings on the y-axis
+sns.scatterplot(x="nuclear_energy", y="pool_drownings", data=weird_df)
+plt.show()
+
+# Print out the correlation matrix of weird_df
+print(weird_df.corr())
+// Output:
+                    pool_drownings  nuclear_energy
+    pool_drownings           1.000           0.901
+    nuclear_energy           0.901           1.000
+=> Not much to conclude because correlation does not imply causation 
+
+
+## CHAPTER 3: FEATURE SELECTION II - SELECTING FOR MODEL ACCURACY
+
+a) Train a Logistic Regression model to predict whether a person has diabetes
+
+# Fit the scaler on the training features and transform these in one go
+X_train_std = scaler.fit_transform(X_train)
+
+# Fit the logistic regression model on the scaled training data
+lr.fit(X_train_std, y_train)
+
+# Scale the test features
+X_test_std = scaler.transform(X_test)
+
+# Predict diabetes presence on the scaled test set
+y_pred = lr.predict(X_test_std)
+
+# Prints accuracy metrics and feature coefficients
+print(f"{accuracy_score(y_test, y_pred):.1%} accuracy on test set.")
+print(dict(zip(X_train.columns, abs(lr.coef_[0]).round(2))))
+// Output:     79.6% accuracy on test set.
+    {'pregnant': 0.05, 'glucose': 1.23, 'diastolic': 0.03, 'triceps': 0.24, 'insulin': 0.19, 'bmi': 0.38, 'family': 0.35, 'age': 0.34}
+
+b) Reduce the number of features in the diabetes classifier while maintaining accuracy using Manual Recursive Feature Elimination (RFE)
+
+Default features: X = diabetes_df[['pregnant', 'glucose', 'diastolic', 'triceps', 'insulin', 'bmi', 'family', 'age']]
+
+//Output from running the initial code (1):
+    79.6% accuracy on test set.
+    {'pregnant': 0.05, 'glucose': 1.23, 'diastolic': 0.03, 'triceps': 0.24, 'insulin': 0.19, 'bmi': 0.38, 'family': 0.35, 'age': 0.34}
+
+# Remove the feature with the lowest model coefficient
+X = diabetes_df[['pregnant', 'glucose', 'triceps', 'insulin', 'bmi', 'family', 'age']]
+
+# Performs a 25-75% train test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+
+# Scales features and fits the logistic regression model
+lr.fit(scaler.fit_transform(X_train), y_train)
+
+# Calculates the accuracy on the test set and prints coefficients
+acc = accuracy_score(y_test, lr.predict(scaler.transform(X_test)))
+print(f"{acc:.1%} accuracy on test set.") 
+print(dict(zip(X.columns, abs(lr.coef_[0]).round(2))))
+
+// Output (2):
+    80.6% accuracy on test set.
+    {'pregnant': 0.05, 'glucose': 1.24, 'triceps': 0.24, 'insulin': 0.2, 'bmi': 0.39, 'family': 0.34, 'age': 0.35}
+
+# Remove the 2 features with the lowest model coefficients
+X = diabetes_df[['glucose', 'triceps', 'bmi', 'family', 'age']]
+
+# Performs a 25-75% train test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+
+# Scales features and fits the logistic regression model
+lr.fit(scaler.fit_transform(X_train), y_train)
+
+# Calculates the accuracy on the test set and prints coefficients
+acc = accuracy_score(y_test, lr.predict(scaler.transform(X_test)))
+print(f"{acc:.1%} accuracy on test set.") 
+print(dict(zip(X.columns, abs(lr.coef_[0]).round(2))))
+
+// Output (3):
+    79.6% accuracy on test set.
+    {'glucose': 1.13, 'triceps': 0.25, 'bmi': 0.34, 'family': 0.34, 'age': 0.37}
+
+# Only keep the feature with the highest coefficient
+X = diabetes_df[['glucose']]
+
+# Performs a 25-75% train test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+
+# Scales features and fits the logistic regression model to the data
+lr.fit(scaler.fit_transform(X_train), y_train)
+
+# Calculates the accuracy on the test set and prints coefficients
+acc = accuracy_score(y_test, lr.predict(scaler.transform(X_test)))
+print(f"{acc:.1%} accuracy on test set.") 
+print(dict(zip(X.columns, abs(lr.coef_[0]).round(2))))
+
+// Output (4):
+    75.5% accuracy on test set.
+    {'glucose': 1.28}
+
+c) Use Recursive Feature Elimination (RFE) to automatically select the top 3 most important features while maintaining accuracy.
+
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+
+# Create the RFE with a LogisticRegression estimator and 3 features to select
+rfe = RFE(estimator=LogisticRegression(), n_features_to_select=3, verbose=1)
+
+# Fit the eliminator to the data
+rfe.fit(X_train, y_train)
+
+# Print the features and their ranking (high = dropped early on)
+print(dict(zip(X.columns, rfe.ranking_)))
+
+# Print the features that are not eliminated
+print(X.columns[rfe.support_])
+
+# Calculate the test set accuracy
+acc = accuracy_score(y_test, rfe.predict(X_test))
+print(f"{acc:.1%} accuracy on test set.")
+// Output:
+    Fitting estimator with 8 features.
+    Fitting estimator with 7 features.
+    Fitting estimator with 6 features.
+    Fitting estimator with 5 features.
+    Fitting estimator with 4 features.
+    {'pregnant': 5, 'glucose': 1, 'diastolic': 6, 'triceps': 3, 'insulin': 4, 'bmi': 1, 'family': 2, 'age': 1}
+    Index(['glucose', 'bmi', 'age'], dtype='object')
+    80.6% accuracy on test set.
+
+d)
+
