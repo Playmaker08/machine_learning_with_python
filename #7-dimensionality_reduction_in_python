@@ -84,3 +84,100 @@ plt.show()
 
 
 ## CHAPTER 2: FEATURE SELECTION I - SELECTING FOR FEATURE INFORMATION
+
+a) Splitting the ANSUR dataset into training and test sets
+
+# Import train_test_split()
+from sklearn.model_selection import train_test_split
+
+# Select the Gender column as the feature to be predicted (y)
+y = ansur_df['Gender']
+
+# Remove the Gender column to create the training data
+X = ansur_df.drop('Gender', axis=1)
+
+# Perform a 70% train and 30% test data split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+
+print(f"{X_test.shape[0]} rows in test set vs. {X_train.shape[0]} in training set, {X_test.shape[1]} Features.")
+
+// Output: 60 rows in test set vs. 140 in training set, 92 Features.
+
+b) Fitting and testing an SVM classifier on the ANSUR dataset
+
+# Import SVC from sklearn.svm and accuracy_score from sklearn.metrics
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+
+# Create an instance of the Support Vector Classification class
+svc = SVC()
+
+# Fit the model to the training data
+svc.fit(X_train, y_train)
+
+# Calculate accuracy scores on both train and test data
+accuracy_train = accuracy_score(y_train, svc.predict(X_train))
+accuracy_test = accuracy_score(y_test, svc.predict(X_test))
+
+print(f"{accuracy_test:.1%} accuracy on test set vs. {accuracy_train:.1%} on training set")
+// Output: 81.7% accuracy on test set vs. 88.6% on training set
+
+c) Reducing overfitting using dimensionality reduction
+
+# Assign just the 'neckcircumferencebase' column from ansur_df to X
+X = ansur_df[['neckcircumferencebase']]
+
+# Split the data, instantiate a classifier and fit the data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+svc = SVC()
+svc.fit(X_train, y_train)
+
+# Calculate accuracy scores on both train and test data
+accuracy_train = accuracy_score(y_train, svc.predict(X_train))
+accuracy_test = accuracy_score(y_test, svc.predict(X_test))
+
+print(f"{accuracy_test:.1%} accuracy on test set vs. {accuracy_train:.1%} on training set")
+// Output: 95.0% accuracy on test set vs. 95.0% on training set
+
+d) Finding a good variance threshold
+
+# Create the boxplot
+head_df.boxplot()
+plt.show()
+
+# Normalize the data
+normalized_df = head_df / head_df.mean()
+normalized_df.boxplot()
+plt.show()
+
+# Print the variances of the normalized data
+print(normalized_df.var())
+
+// Output: 
+    headbreadth          1.679e-03
+    headcircumference    1.030e-03
+    headlength           1.868e-03
+    tragiontopofhead     2.640e-03
+    n_hairs              1.003e-08
+    measurement_error    0.000e+00
+    dtype: float64
+A threshold of 1.0e-03 (0.001) will remove the two low variance features.
+
+e) Removing low-variance features using VarianceThreshold
+
+from sklearn.feature_selection import VarianceThreshold
+
+# Create a VarianceThreshold feature selector with threshold 0.001
+sel = VarianceThreshold(threshold=0.001)
+
+# Fit the selector to normalized head_df
+sel.fit(head_df / head_df.mean())
+
+# Create a boolean mask
+mask = sel.get_support()
+
+# Apply the mask to create a reduced DataFrame
+reduced_df = head_df.loc[:, mask]
+
+print(f"Dimensionality reduced from {head_df.shape[1]} to {reduced_df.shape[1]}.")
+// Output: Dimensionality reduced from 6 to 4.
