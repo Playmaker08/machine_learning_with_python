@@ -178,4 +178,488 @@ print(knn.score(X_test_scaled, y_test))
 
 ## CHAPTER 3: FEATURE ENGINEERING
 
-a)
+a) Encode the "Accessible" column (Y/N) into binary values (1/0) using LabelEncoder from scikit-learn.
+from sklearn.preprocessing import LabelEncoder
+
+# Set up the LabelEncoder object
+enc = LabelEncoder()
+
+# Apply the encoding to the "Accessible" column
+hiking["Accessible_enc"] = enc.fit_transform(hiking["Accessible"])
+
+# Compare the two columns
+print(hiking[["Accessible", "Accessible_enc"]].head())
+// Output:
+      Accessible  Accessible_enc
+    0          Y               1
+    1          N               0
+    2          N               0
+    3          N               0
+    4          N               0
+
+b) Encode the "category_desc" column, which has multiple categories, into one-hot encoded columns using pandas' get_dummies() function.
+
+import pandas as pd
+# Transform the category_desc column
+category_enc = pd.get_dummies(volunteer["category_desc"])
+
+# Take a look at the encoded columns
+print(category_enc.head())
+// Output:
+       Education  Emergency Preparedness  Environment  Health  Helping Neighbors in Need  Strengthening Communities
+    0          0                       0            0       0                          0                          0
+    1          0                       0            0       0                          0                          1
+    2          0                       0            0       0                          0                          1
+    3          0                       0            0       0                          0                          1
+    4          0                       0            1       0                          0                          0
+
+c) Compute the mean of each individual's 5 running times and store it in a new column called "mean".
+
+# Use .loc to create a mean column
+running_times_5k["mean"] = running_times_5k.loc[:, :].mean(axis=1)
+
+# Take a look at the results
+print(running_times_5k.head())
+// Output:
+        name  run1  run2  run3  run4  run5   mean
+    0    Sue  20.1  18.5  19.6  20.3  18.3  19.36
+    1   Mark  16.5  17.1  16.9  17.6  17.3  17.08
+    2   Sean  23.5  25.1  25.2  24.6  23.9  24.46
+    3   Erin  21.7  21.1  20.9  22.1  22.2  21.60
+    4  Jenny  25.8  27.1  26.1  26.7  26.9  26.52
+
+d) Convert a datetime column and extract the month as a new feature.
+
+# First, convert string column to date column
+volunteer["start_date_converted"] = pd.to_datetime(volunteer["start_date_date"])
+
+# Extract just the month from the converted column
+volunteer["start_date_month"] = volunteer["start_date_converted"].dt.month
+
+# Take a look at the converted and new month columns
+print(volunteer[["start_date_converted", "start_date_month"]].head())
+// Output:
+      start_date_converted  start_date_month
+    0           2011-07-30                 7
+    1           2011-02-01                 2
+    2           2011-01-29                 1
+    3           2011-02-14                 2
+    4           2011-02-05                 2
+
+e) Extract the mileage from the Length column using regular expressions (regex) and convert it to a numerical value.
+
+import re
+
+# Write a pattern to extract numbers and decimals
+def return_mileage(length):
+    
+    # Search the text for matches (decimal numbers)
+    mile = re.search(r"\d+(\.\d+)?", length)
+    
+    # If a value is found, return the extracted number as a float
+    if mile is not None:
+        return float(mile.group(0))
+
+# Apply the function to the Length column and take a look at both columns
+hiking["Length_num"] = hiking["Length"].apply(return_mileage)
+print(hiking[["Length", "Length_num"]].head())
+// Output:
+           Length  Length_num
+    0   0.8 miles        0.80
+    1    1.0 mile        1.00
+    2  0.75 miles        0.75
+    3   0.5 miles        0.50
+    4   0.5 miles        0.50
+
+f) Convert the title column from the volunteer dataset into a TF-IDF vector for text-based predictions.
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Take the title text
+title_text = volunteer["title"]
+
+# Create the vectorizer method
+tfidf_vec = TfidfVectorizer()
+
+# Transform the text into tf-idf vectors
+text_tfidf = tfidf_vec.fit_transform(title_text)
+
+g) Train a Naive Bayes model on TF-IDF encoded title text to predict the category_desc column.
+
+from sklearn.model_selection import train_test_split
+
+# Split the dataset according to the class distribution of category_desc
+y = volunteer["category_desc"]
+X_train, X_test, y_train, y_test = train_test_split(text_tfidf.toarray(), y, stratify=y, random_state=42)
+
+# Fit the model to the training data
+nb.fit(X_train, y_train)
+
+# Print out the model's accuracy
+print(nb.score(X_test, y_test))
+
+
+## CHAPTER 4: PREPROCESSING FOR MACHINE LEARNING IN PYTHON
+
+a) Identify and drop redundant columns in the volunteer dataset to retain only essential features.
+
+# Create a list of redundant column names to drop
+to_drop = ["category_desc", "created_date", "locality", "region", "vol_requests"]
+
+# Drop those columns from the dataset
+volunteer_subset = volunteer.drop(to_drop, axis=1)
+
+# Print out the head of volunteer_subset
+print(volunteer_subset.head())
+// Output:
+                                                   title  hits  postalcode  vol_requests_lognorm  created_month  Education  Emergency Preparedness  Environment  Health  Helping Neighbors in Need  \
+    1                                       Web designer    22     10010.0                 0.693              1          0                       0            0       0                          0   
+    2      Urban Adventures - Ice Skating at Lasker Rink    62     10026.0                 2.996              1          0                       0            0       0                          0   
+    3  Fight global hunger and support women farmers ...    14      2114.0                 6.215              1          0                       0            0       0                          0   
+    4                                      Stop 'N' Swap    31     10455.0                 2.708              1          0                       0            1       0                          0   
+    5                               Queens Stop 'N' Swap   135     11372.0                 2.708              1          0                       0            1       0                          0   
+    
+       Strengthening Communities  
+    1                          1  
+    2                          1  
+    3                          1  
+    4                          0  
+    5                          0  
+
+b) Identify and drop highly correlated features in the wine dataset to reduce redundancy.
+
+# Print out the column correlations of the wine dataset
+print(wine.corr())
+
+# Identify columns with correlation coefficient above 0.75 with at least two other columns
+correlation_matrix = wine.corr().abs()
+high_corr_cols = [column for column in correlation_matrix.columns if (correlation_matrix[column] > 0.75).sum() > 2]
+
+# Drop those columns from the DataFrame
+wine = wine.drop(high_corr_cols, axis=1)
+
+print(wine.head())
+// Output:
+                                  Flavanoids  Total phenols  Malic acid  OD280/OD315 of diluted wines    Hue
+    Flavanoids                         1.000          0.865      -0.411                         0.787  0.543
+    Total phenols                      0.865          1.000      -0.335                         0.700  0.434
+    Malic acid                        -0.411         -0.335       1.000                        -0.369 -0.561
+    OD280/OD315 of diluted wines       0.787          0.700      -0.369                         1.000  0.565
+    Hue                                0.543          0.434      -0.561                         0.565  1.000
+       Total phenols  Malic acid  OD280/OD315 of diluted wines   Hue
+    0           2.80        1.71                          3.92  1.04
+    1           2.65        1.78                          3.40  1.05
+    2           2.80        2.36                          3.17  1.03
+    3           3.85        1.95                          3.45  0.86
+    4           2.80        2.59                          2.93  1.04
+
+c) Extract the top N most weighted words from a specific document in the TF-IDF vector of the volunteer dataset.
+
+# Add in the rest of the arguments
+def return_weights(vocab, original_vocab, vector, vector_index, top_n):
+    zipped = dict(zip(vector[vector_index].indices, vector[vector_index].data))
+    
+    # Transform that zipped dict into a series
+    zipped_series = pd.Series({vocab[i]:zipped[i] for i in vector[vector_index].indices})
+    
+    # Sort the series to pull out the top n weighted words
+    zipped_index = zipped_series.sort_values(ascending=False)[:top_n].index
+    return [original_vocab[i] for i in zipped_index]
+
+# Print out the weighted words
+print(return_weights(vocab, tfidf_vec.vocabulary_, text_tfidf, 8, 3))
+// Output:     [189, 942, 466]
+
+d) Extract top N most weighted words from each document in the TF-IDF vector, remove duplicates, and filter the text vector.
+
+def words_to_filter(vocab, original_vocab, vector, top_n):
+    filter_list = []
+    for i in range(0, vector.shape[0]):
+    
+        # Call the return_weights function and extend filter_list
+        filtered = return_weights(vocab, original_vocab, vector, i, top_n)
+        filter_list.extend(filtered)
+        
+    # Return the list in a set, so we don't get duplicate word indices
+    return set(filter_list)
+
+# Call the function to get the list of word indices
+filtered_words = words_to_filter(vocab=tfidf_vec.get_feature_names_out(), 
+                                 original_vocab=tfidf_vec.vocabulary_, 
+                                 vector=text_tfidf, 
+                                 top_n=3)
+
+# Filter the columns in text_tfidf to only those in filtered_words
+filtered_text = text_tfidf[:, list(filtered_words)]
+
+e) Train a Naive Bayes classifier on the filtered TF-IDF text vectors and evaluate accuracy.
+
+# Split the dataset according to the class distribution of category_desc
+X_train, X_test, y_train, y_test = train_test_split(filtered_text.toarray(), 
+                                                    y, 
+                                                    stratify=y, 
+                                                    random_state=42)
+
+# Fit the model to the training data
+nb.fit(X_train, y_train)
+
+# Print out the model's accuracy
+print(nb.score(X_test, y_test))
+
+f) Use Principal Component Analysis (PCA) to transform the Wine dataset, reducing dimensionality and potentially improving model accuracy.
+
+# Instantiate a PCA object
+pca = PCA()
+
+# Define the features and labels from the wine dataset
+X = wine.drop("Type", axis=1)
+y = wine["Type"]
+
+# Split the dataset into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=42)
+
+# Apply PCA to the training and test data (ensuring no data leakage)
+pca_X_train = pca.fit_transform(X_train)
+pca_X_test = pca.transform(X_test)
+
+# Look at the percentage of variance explained by the different components
+print(pca.explained_variance_ratio_)
+// Output: 
+    [9.97795009e-01 2.02071827e-03 9.88350594e-05 5.66222566e-05
+     1.26161135e-05 8.93235789e-06 3.13856866e-06 1.57406401e-06
+     1.15918860e-06 7.49332354e-07 3.70332305e-07 1.94185373e-07
+     8.08440051e-08]
+
+g) Train a KNN model using the PCA-transformed data
+
+# Fit knn to the training data
+knn.fit(pca_X_train, y_train)
+
+# Score knn on the test data and print it out
+print(knn.score(pca_X_test, y_test))
+
+
+## CHAPTER 5: PUTTING IT ALL TOGETHER
+
+a) Convert the seconds column to float and the date column to datetime in the UFO dataset.
+
+# Print the DataFrame info
+print(ufo.info())
+
+# Change the type of seconds to float
+ufo["seconds"] = ufo["seconds"].astype(float)
+
+# Change the date column to type datetime
+ufo["date"] = pd.to_datetime(ufo["date"])
+
+# Check the column types
+print(ufo.info())
+// Output:
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 4935 entries, 0 to 4934
+    Data columns (total 11 columns):
+     #   Column          Non-Null Count  Dtype  
+    ---  ------          --------------  -----  
+     0   date            4935 non-null   object 
+     1   city            4926 non-null   object 
+     2   state           4516 non-null   object 
+     3   country         4255 non-null   object 
+     4   type            4776 non-null   object 
+     5   seconds         4935 non-null   object 
+     6   length_of_time  4792 non-null   object 
+     7   desc            4932 non-null   object 
+     8   recorded        4935 non-null   object 
+     9   lat             4935 non-null   object 
+     10  long            4935 non-null   float64
+    dtypes: float64(1), object(10)
+    memory usage: 424.2+ KB
+    None
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 4935 entries, 0 to 4934
+    Data columns (total 11 columns):
+     #   Column          Non-Null Count  Dtype         
+    ---  ------          --------------  -----         
+     0   date            4935 non-null   datetime64[ns]
+     1   city            4926 non-null   object        
+     2   state           4516 non-null   object        
+     3   country         4255 non-null   object        
+     4   type            4776 non-null   object        
+     5   seconds         4935 non-null   float64       
+     6   length_of_time  4792 non-null   object        
+     7   desc            4932 non-null   object        
+     8   recorded        4935 non-null   object        
+     9   lat             4935 non-null   object        
+     10  long            4935 non-null   float64       
+    dtypes: datetime64[ns](1), float64(2), object(8)
+    memory usage: 424.2+ KB
+    None
+
+b) Identify and remove rows with missing values in the length_of_time, state, and type columns from the UFO dataset.
+
+# Count the missing values in the length_of_time, state, and type columns, in that order
+print(ufo[["length_of_time", "state", "type"]].isna().sum())
+
+# Drop rows where length_of_time, state, or type are missing
+ufo_no_missing = ufo.dropna(subset=["length_of_time", "state", "type"])
+
+# Print out the shape of the new dataset
+print(ufo_no_missing.shape)
+// Output:
+    length_of_time    143
+    state             419
+    type              159
+    dtype: int64
+    (4283, 4)
+
+c) Extract the numeric value from the length_of_time column using regular expressions and store it in a new column minutes.
+
+import re
+
+def return_minutes(time_string):
+    # Search for numbers in time_string
+    num = re.search(r"\d+", time_string)
+    if num is not None:
+        return int(num.group(0))
+
+# Apply the extraction to the length_of_time column
+ufo["minutes"] = ufo["length_of_time"].apply(return_minutes)
+
+# Take a look at the head of both of the columns
+print(ufo[["length_of_time", "minutes"]].head())
+// Output:
+        length_of_time  minutes
+    2  about 5 minutes      5.0
+    4       10 minutes     10.0
+    7        2 minutes      2.0
+    8        2 minutes      2.0
+    9        5 minutes      5.0
+
+d) Calculate variance for the seconds and minutes columns, then log normalize the seconds column to reduce variance.
+
+# Check the variance of the seconds and minutes columns
+print(ufo[["seconds", "minutes"]].var())
+
+# Log normalize the seconds column
+ufo["seconds_log"] = np.log(ufo["seconds"])
+
+# Print out the variance of just the seconds_log column
+print(ufo["seconds_log"].var())
+// Output:
+    seconds    424087.417
+    minutes       117.546
+    dtype: float64
+    1.1223923881183004
+
+e) Encode categorical variables by applying binary encoding to the country column and one-hot encoding to the type column.
+
+# Use pandas to encode us values as 1 and others as 0
+ufo["country_enc"] = ufo["country"].apply(lambda val: 1 if val == "us" else 0)
+
+# Print the number of unique type values
+print(len(ufo["type"].unique()))
+
+# Create a one-hot encoded set of the type values
+type_set = pd.get_dummies(ufo["type"])
+
+# Concatenate this set back to the ufo DataFrame
+ufo = pd.concat([ufo, type_set], axis=1)
+
+f) Extract the month and year from the date column in the UFO dataset for further feature engineering.
+
+# Look at the first 5 rows of the date column
+print(ufo["date"].head())
+
+# Extract the month from the date column
+ufo["month"] = ufo["date"].dt.month
+
+# Extract the year from the date column
+ufo["year"] = ufo["date"].dt.year
+
+# Take a look at the head of all three columns
+print(ufo[["date", "month", "year"]].head())
+// Output:
+    0   2002-11-21 05:45:00
+    1   2012-06-16 23:00:00
+    2   2013-06-09 00:00:00
+    3   2013-04-26 23:27:00
+    4   2013-09-13 20:30:00
+    Name: date, dtype: datetime64[ns]
+                     date  month  year
+    0 2002-11-21 05:45:00     11  2002
+    1 2012-06-16 23:00:00      6  2012
+    2 2013-06-09 00:00:00      6  2013
+    3 2013-04-26 23:27:00      4  2013
+    4 2013-09-13 20:30:00      9  2013
+
+g) Convert the desc column in the UFO dataset into TF-IDF vectors to analyze text patterns.
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Take a look at the head of the desc field
+print(ufo["desc"].head())
+
+# Instantiate the tfidf vectorizer object
+vec = TfidfVectorizer()
+
+# Fit and transform desc using vec
+desc_tfidf = vec.fit_transform(ufo["desc"])
+
+# Look at the number of columns and rows
+print(desc_tfidf.shape)
+// Output:
+    0    It was a large&#44 triangular shaped flying ob...
+    1    Dancing lights that would fly around and then ...
+    2    Brilliant orange light or chinese lantern at o...
+    3    Bright red light moving north to north west fr...
+    4    North-east moving south-west. First 7 or so li...
+    Name: desc, dtype: object
+    (1866, 3422)
+
+h) Remove unnecessary columns from the UFO dataset and filter key words from the text vector.
+
+# Make a list of features to drop
+to_drop = ["city", "country", "lat", "long", "state", 
+           "date", "recorded", "seconds", "minutes", 
+           "desc", "length_of_time"]
+
+# Drop those features
+ufo_dropped = ufo.drop(columns=to_drop)
+
+# Let's also filter some words out of the text vector we created
+filtered_words = words_to_filter(vocab, vec.vocabulary_, desc_tfidf, 4)
+
+i) Train a KNN model to predict the country of UFO sightings using the prepared feature set.
+
+# Take a look at the features in the X set of data
+print(X.columns)
+
+# Split the X and y sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=42)
+
+# Fit knn to the training sets
+knn.fit(X_train, y_train)
+
+# Print the score of knn on the test sets
+print(knn.score(X_test, y_test))
+// Output:
+    Index(['seconds_log', 'changing', 'chevron', 'cigar', 'circle', 'cone', 'cross', 'cylinder', 'diamond', 'disk', 'egg', 'fireball', 'flash', 'formation', 'light', 'other', 'oval', 'rectangle',
+           'sphere', 'teardrop', 'triangle', 'unknown', 'month', 'year'],
+          dtype='object')
+    0.8650963597430407
+
+j) Train a Naive Bayes model to predict UFO sighting types based on the filtered text vector.
+
+# Use the list of filtered words we created to filter the text vector
+filtered_text = desc_tfidf[:, list(filtered_words)]
+
+# Split the X and y sets using train_test_split, setting stratify=y 
+X_train, X_test, y_train, y_test = train_test_split(filtered_text.toarray(), y, stratify=y, random_state=42)
+
+# Fit nb to the training sets
+nb.fit(X_train, y_train)
+
+# Print the score of nb on the test sets
+print(nb.score(X_test, y_test))
+// Output:     0.17987152034261242
+=> This model performs very poorly on this text data. This is a clear case where iteration would be necessary to figure out what subset of text improves the model, 
+and if perhaps any of the other features are useful in predicting type.
