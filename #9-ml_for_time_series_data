@@ -275,6 +275,480 @@ axs[0].plot(time, audio)
 specshow(spec_db, sr=sfreq, x_axis='time', y_axis='hz', hop_length=HOP_LENGTH, ax=axs[1])
 plt.show()
 
-h)
+h) Compute spectral centroid and spectral bandwidth from the spectrogram (spec) using librosa.feature.
+
+import librosa as lr
+
+# Calculate the spectral centroid and bandwidth for the spectrogram
+bandwidths = lr.feature.spectral_bandwidth(S=spec)[0]  # Spectral Bandwidth
+centroids = lr.feature.spectral_centroid(S=spec)[0]  # Spectral Centroid
+
+from librosa.core import amplitude_to_db
+from librosa.display import specshow
+
+# Convert spectrogram to decibels for visualization
+spec_db = amplitude_to_db(spec)
+
+# Display these features on top of the spectrogram
+fig, ax = plt.subplots(figsize=(10, 5))
+specshow(spec_db, x_axis='time', y_axis='hz', hop_length=HOP_LENGTH, ax=ax)
+ax.plot(times_spec, centroids)
+ax.fill_between(times_spec, centroids - bandwidths / 2, centroids + bandwidths / 2, alpha=.5)
+ax.set(ylim=[None, 6000])
+plt.show()
+
+i) Loop through spectrograms and calculate mean spectral bandwidth and mean spectral centroid for each.
+
+# Loop through each spectrogram
+bandwidths = []
+centroids = []
+
+for spec in spectrograms:
+    # Calculate the mean spectral bandwidth
+    this_mean_bandwidth = np.mean(lr.feature.spectral_bandwidth(S=spec))
+    # Calculate the mean spectral centroid
+    this_mean_centroid = np.mean(lr.feature.spectral_centroid(S=spec))
+    # Collect the values
+    bandwidths.append(this_mean_bandwidth)  
+    centroids.append(this_mean_centroid)
+
+# Create the X and y arrays
+X = np.column_stack([means, stds, maxs, tempo_mean, tempo_max, tempo_std, bandwidths, centroids])
+y = labels.reshape(-1, 1)
+
+# Fit the model and score on testing data
+percent_score = cross_val_score(model, X, y, cv=5)
+print(np.mean(percent_score))
+// Output:     0.4833333333333333
+This chapter was focused on creating new "features" from raw data and not obtaining the best accuracy. To improve the accuracy, you want to find the right features that provide relevant information and also build models on much larger data.
 
 
+## CHAPTER 3: PREDICTING TIME SERIES DATA
+
+a) Visualizing Stock Prices Over Time
+
+# Plot the raw values over time
+prices.plot()
+plt.show()
+
+# Scatterplot with one company per axis
+prices.plot.scatter('EBAY', 'YHOO')
+plt.show()
+
+# Scatterplot with color relating to time
+prices.plot.scatter('EBAY', 'YHOO', c=prices.index, 
+                    cmap=plt.cm.viridis, colorbar=False)
+plt.show()
+
+b) Predict Apple Stock Price Using Other Companies' Stock Prices
+
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import cross_val_score
+
+# Use stock symbols to extract training data
+X = all_prices[['EBAY', 'NVDA', 'YHOO']]
+y = all_prices[['AAPL']]
+
+# Fit and score the model with cross-validation
+scores = cross_val_score(Ridge(), X, y, cv=3)
+print(scores)
+// Output:    [-6.09050633 -0.3179172  -3.72957284]; Fitting a model with raw data doesn't give great results.
+
+c) Build a model and then visualize the model's predictions on top of the testing data in order to estimate the model's performance.
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score
+
+# Split our data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, 
+                                                    train_size=.8, shuffle=False)
+
+# Fit our model and generate predictions
+model = Ridge()
+model.fit(X_train, y_train)
+predictions = model.predict(X_test)
+score = r2_score(y_test, predictions)
+print(score)
+
+# Visualize our predictions along with the "true" values, and print the score
+fig, ax = plt.subplots(figsize=(15, 5))
+ax.plot(y_test, color='k', lw=3)
+ax.plot(predictions, color='r', lw=2)
+plt.show()
+
+d) Visualize time series data to detect irregularities identify missing values in each time series
+
+import matplotlib.pyplot as plt
+
+# Visualize the dataset
+prices.plot(legend=False)
+plt.title("Stock Prices Over Time")
+plt.xlabel("Date")
+plt.ylabel("Stock Price")
+plt.tight_layout()
+plt.show()
+
+# Count the missing values of each time series
+missing_values = prices.isnull().sum()
+print("Missing values per column:\n", missing_values)
+// Output:
+    Missing values per column:
+     symbol
+    EBAY    273
+    NVDA    502
+    YHOO    232
+    dtype: int64
+
+e) Identify missing values in a time series dataset, interpolate missing values using different methods, and visualize the interpolated data
+
+# Create a function we'll use to interpolate and plot
+def interpolate_and_plot(prices, interpolation):
+
+    # Create a boolean mask for missing values
+    missing_values = prices.isna()
+
+    # Interpolate the missing values
+    prices_interp = prices.interpolate(interpolation)
+
+    # Plot the results, highlighting the interpolated values in black
+    fig, ax = plt.subplots(figsize=(10, 5))
+    prices_interp.plot(color='k', alpha=.6, ax=ax, legend=False)
+    
+    # Now plot the interpolated values on top in red
+    prices_interp[missing_values].plot(ax=ax, color='r', lw=3, legend=False)
+    plt.show()
+
+# Interpolate using the latest non-missing value
+interpolation_type = 'zero'
+interpolate_and_plot(prices, interpolation_type)
+
+# Interpolate linearly
+interpolation_type = 'linear'
+interpolate_and_plot(prices, interpolation_type)
+
+# Interpolate with a quadratic function
+interpolation_type = 'quadratic'
+interpolate_and_plot(prices, interpolation_type)
+
+f) Create a function to compute the percentage change of the latest value compared to the rolling mean of previous values then apply this function using a rolling window of 20 to smooth out fluctuations in stock prices.
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Your custom function
+def percent_change(series):
+    # Collect all *but* the last value of this window, then the final value
+    previous_values = series[:-1]  # Exclude the last value
+    last_value = series[-1]  # Get the last value
+
+    # Calculate the % difference between the last value and the mean of earlier values
+    percent_change = (last_value - np.mean(previous_values)) / np.mean(previous_values)
+    return percent_change
+
+# Apply your custom function to a rolling window of 20
+prices_perc = prices.rolling(20).apply(percent_change, raw=True)
+
+# Plot the results
+prices_perc.loc["2014":"2015"].plot()
+plt.title("Percentage Change Over a Rolling Window")
+plt.xlabel("Date")
+plt.ylabel("Percent Change")
+plt.show()
+
+g) Detect and replace outliers in stock price percentage changes using 3 standard deviations as a threshold.
+
+def replace_outliers(series):
+    # Calculate the absolute difference of each timepoint from the series mean
+    absolute_differences_from_mean = np.abs(series - np.mean(series))
+
+    # Calculate a mask for the differences that are > 3 standard deviations from the mean
+    this_mask = absolute_differences_from_mean > (np.std(series) * 3)
+    
+    # Replace these values with the median accross the data
+    series[this_mask] = np.nanmedian(series)
+    return series
+
+# Apply your preprocessing function to the timeseries and plot the results
+prices_perc = prices_perc.apply(replace_outliers)
+prices_perc.loc["2014":"2015"].plot()
+plt.show()
+
+h) Compute rolling statistics (min, max, mean, std deviation) on stock price percentage changes.
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Define a rolling window with Pandas (excluding the right-most datapoint of the window)
+prices_perc_rolling = prices_perc.rolling(20, min_periods=5, closed='right')
+
+# Define the features to calculate: min, max, mean, std deviation
+features_to_calculate = [np.min, np.max, np.mean, np.std]
+
+# Calculate these features for the rolling window
+features = prices_perc_rolling.aggregate(features_to_calculate)
+
+# Plot the results
+ax = features.loc[:"2011-01"].plot()
+prices_perc.loc[:"2011-01"].plot(ax=ax, color='k', alpha=0.2, lw=3)
+ax.legend(loc=(1.01, 0.6))
+plt.title("Rolling Window Statistics of Stock Price Changes")
+plt.show()
+
+i) Pre-define arguments for the np.percentile function using partial() and compute rolling percentiles on time-series stock price percentage changes.
+
+# Import required libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from functools import partial
+
+# Define percentiles to calculate
+percentiles = [1, 10, 25, 50, 75, 90, 99]
+
+# Use a list comprehension to create partial functions for each quantile
+percentile_functions = [partial(np.percentile, q=percentile) for percentile in percentiles]
+
+# Define a rolling window with Pandas (excluding the right-most datapoint of the window)
+prices_perc_rolling = prices_perc.rolling(20, min_periods=5, closed='right')
+
+# Apply the pre-defined percentile functions using aggregation
+features_percentiles = prices_perc_rolling.aggregate(percentile_functions)
+
+# Plot a subset of the result
+ax = features_percentiles.loc[:"2011-01"].plot(cmap=plt.cm.viridis)
+ax.legend(percentiles, loc=(1.01, 0.5))
+plt.title("Rolling Percentiles of Stock Price Changes")
+plt.show()
+
+j) Extract useful date-based features from a time series dataset (prices_perc)
+
+# Extract date features from the data, add them as columns
+prices_perc['day_of_week'] = prices_perc.index.dayofweek
+prices_perc['week_of_year'] = prices_perc.index.weekofyear
+prices_perc['month_of_year'] = prices_perc.index.month
+
+# Print prices_perc
+print(prices_perc)
+// Output:
+                 EBAY  day_of_week  week_of_year  month_of_year
+    date                                                       
+    2014-01-02  0.018            3             1              1
+    2014-01-03  0.002            4             1              1
+    2014-01-06 -0.027            0             2              1
+    2014-01-07 -0.007            1             2              1
+    2014-01-08 -0.017            2             2              1
+    ...           ...          ...           ...            ...
+    2015-12-24 -0.029            3            52             12
+    2015-12-28 -0.027            0            53             12
+    2015-12-29 -0.014            1            53             12
+    2015-12-30 -0.017            2            53             12
+    2015-12-31 -0.025            3            53             12
+    
+    [504 rows x 4 columns]
+
+
+## CHAPTER 4: VALIDATING AND INSPECTING TIME SERIES MODELS
+
+a) Use time-lagged features to capture past information in a time series dataset (prices_perc) and prepare it for machine learning.
+
+# These are the "time lags" (1 to 10 days)
+shifts = np.arange(1, 11).astype(int)
+
+# Use a dictionary comprehension to create name: value pairs, one pair per shift
+shifted_data = {"lag_{}_day".format(day_shift): prices_perc.shift(day_shift) for day_shift in shifts}
+
+# Convert into a DataFrame for subsequent use
+prices_perc_shifted = pd.DataFrame(shifted_data)
+
+# Plot the first 100 samples of each
+ax = prices_perc_shifted.iloc[:100].plot(cmap=plt.cm.viridis)
+prices_perc.iloc[:100].plot(color='r', lw=2)  # Original data in red
+ax.legend(loc='best')
+plt.show()
+
+b) Use previous values of a time series to predict its future values using Auto-Regression (AR) and visualize regression coefficients
+
+# Replace missing values with the median for each column
+X = prices_perc_shifted.fillna(np.nanmedian(prices_perc_shifted))
+y = prices_perc.fillna(np.nanmedian(prices_perc))
+
+# Fit the model
+model = Ridge()
+model.fit(X, y)
+
+def visualize_coefficients(coefs, names, ax):
+    # Make a bar plot for the coefficients, including their names on the x-axis
+    ax.bar(names, coefs)
+    ax.set(xlabel='Coefficient name', ylabel='Coefficient value')
+    
+    # Set formatting so it looks nice
+    plt.setp(ax.get_xticklabels(), rotation=45, horizontalalignment='right')
+    return ax
+
+# Visualize the output data up to "2011-01"
+fig, axs = plt.subplots(2, 1, figsize=(10, 5))
+y.loc[:'2011-01'].plot(ax=axs[0])
+
+# Run the function to visualize model's coefficients
+visualize_coefficients(model.coef_, prices_perc_shifted.columns, ax=axs[1])
+plt.show()
+
+# Run the function to visualize model's coefficients (update window to 40 instead of 20)
+visualize_coefficients(model.coef_, prices_perc_shifted.columns, ax=axs[1])
+plt.show()
+// Note: by transforming your data with a larger window, you've also changed the relationship between each timepoint and the ones that come just before it. This model's coefficients gradually go down to zero, which means that the signal itself is smoother over time.
+
+c) Perform ShuffleSplit cross-validation on historical company price data and evaluate the model using R² scores.
+
+# Import ShuffleSplit and create the cross-validation object
+from sklearn.model_selection import ShuffleSplit
+cv = ShuffleSplit(n_splits=10, random_state=1)
+
+# Iterate through CV splits
+results = []
+for tr, tt in cv.split(X, y):
+    # Fit the model on training data
+    model.fit(X[tr], y[tr])
+
+    # Generate predictions on the test data, score the predictions, and collect
+    prediction = model.predict(X[tt])
+    score = r2_score(y[tt], prediction)
+    results.append((prediction, score, tt))
+    
+# Custom function to quickly visualize predictions
+visualize_predictions(results)
+// Output: If you look at the plot to the right, see that the order of datapoints in the test set is scrambled. Let's see how it looks when we shuffle the data in blocks.
+
+d) Perform K-Fold cross-validation without shuffling to keep neighboring time-points together and observe model predictions.
+
+# Create KFold cross-validation object (no shuffling)
+from sklearn.model_selection import KFold
+cv = KFold(n_splits=10, shuffle=False)
+
+# Iterate through CV splits
+results = []
+for tr, tt in cv.split(X, y):
+    # Fit the model on training data
+    model.fit(X[tr], y[tr])
+    
+    # Generate predictions on the test data and collect
+    prediction = model.predict(X[tt])
+    results.append((prediction, tt))
+
+# Custom function to quickly visualize predictions
+visualize_predictions(results)
+// Output: This time, the predictions generated within each CV loop look 'smoother' than they were before - they look more like a real time series because you didn't shuffle the data.
+
+e) Use TimeSeriesSplit for cross-validation, ensuring that the training set only contains past data points while the test set contains future points.
+
+# Import TimeSeriesSplit
+from sklearn.model_selection import TimeSeriesSplit
+
+# Create time-series cross-validation object (10 splits)
+cv = TimeSeriesSplit(n_splits=10)
+
+# Iterate through CV splits
+fig, ax = plt.subplots()
+for ii, (tr, tt) in enumerate(cv.split(X, y)):
+    # Plot the training data on each iteration to see the behavior of the CV
+    ax.plot(tr, ii + y[tr])
+
+ax.set(title='Training data on each CV iteration', ylabel='CV iteration')
+plt.show()
+
+f) Create a function that bootstraps a confidence interval for the mean of a 2D dataset
+
+from sklearn.utils import resample
+
+def bootstrap_interval(data, percentiles=(2.5, 97.5), n_boots=100):
+    """Bootstrap a confidence interval for the mean of columns of a 2-D dataset."""
+    # Create empty array to fill the results
+    bootstrap_means = np.zeros([n_boots, data.shape[-1]])
+    for ii in range(n_boots):
+        # Generate random indices for data *with* replacement, then take the sample mean
+        random_sample = resample(data)
+        bootstrap_means[ii] = random_sample.mean(axis=0)
+
+    # Compute the percentiles of choice for the bootstrapped means
+    percentiles = np.percentile(bootstrap_means, percentiles, axis=0)
+    return percentiles
+
+g) Assess the stability (or uncertainty) of a model's coefficients across multiple time series cross-validation splits.
+
+from sklearn.model_selection import TimeSeriesSplit
+import numpy as np
+
+# Number of CV splits
+n_splits = 100
+cv = TimeSeriesSplit(n_splits=n_splits)
+
+# Create empty array to collect coefficients
+coefficients = np.zeros([n_splits, X.shape[1]])
+
+for ii, (tr, tt) in enumerate(cv.split(X, y)):
+    # Fit the model on training data
+    model.fit(X[tr], y[tr])
+    
+    # Collect the coefficients
+    coefficients[ii] = model.coef_
+
+# Calculate a confidence interval around each coefficient
+bootstrapped_interval = bootstrap_interval(coefficients)
+
+# Plot it
+fig, ax = plt.subplots()
+ax.scatter(feature_names, bootstrapped_interval[0], marker='_', lw=3)
+ax.scatter(feature_names, bootstrapped_interval[1], marker='_', lw=3)
+ax.set(title='95% confidence interval for model coefficients')
+plt.setp(ax.get_xticklabels(), rotation=45, horizontalalignment='right')
+plt.show()
+
+h) Assess how model performance changes over time using time-series cross-validation.
+
+from sklearn.model_selection import cross_val_score
+import pandas as pd
+from functools import partial
+
+# Generate scores for each split to see how the model performs over time
+scores = cross_val_score(model, X, y, cv=cv, scoring=my_pearsonr)
+
+# Convert to a Pandas Series object
+scores_series = pd.Series(scores, index=times_scores, name='score')
+
+# Bootstrap a rolling confidence interval for the mean score
+scores_lo = scores_series.rolling(20).aggregate(partial(bootstrap_interval, percentiles=2.5))
+scores_hi = scores_series.rolling(20).aggregate(partial(bootstrap_interval, percentiles=97.5))
+
+# Plot the results
+fig, ax = plt.subplots()
+scores_lo.plot(ax=ax, label="Lower confidence interval")
+scores_hi.plot(ax=ax, label="Upper confidence interval")
+ax.legend()
+plt.show()
+
+i) Assess how the model's performance varies over different training window sizes.
+
+from sklearn.model_selection import TimeSeriesSplit, cross_val_score
+import pandas as pd
+
+# Pre-initialize window sizes
+window_sizes = [25, 50, 75, 100]
+
+# Create an empty DataFrame to collect the scores
+all_scores = pd.DataFrame(index=times_scores)
+
+# Generate scores for each split to see how the model performs over time
+for window in window_sizes:
+    # Create cross-validation object using a limited lookback window
+    cv = TimeSeriesSplit(n_splits=100, max_train_size=window)
+    
+    # Calculate scores across all CV splits and collect them in a DataFrame
+    this_scores = cross_val_score(model, X, y, cv=cv, scoring=my_pearsonr)
+    all_scores['Length {}'.format(window)] = this_scores
+
+# Visualize the scores
+ax = all_scores.rolling(10).mean().plot(cmap=plt.cm.coolwarm)
+ax.set(title='Scores for multiple windows', ylabel='Correlation (r)')
+plt.show()
+// Output: notice how in some stretches of time, longer windows perform worse than shorter ones. This is because the statistics in the data have changed, and the longer window is now using outdated information.
