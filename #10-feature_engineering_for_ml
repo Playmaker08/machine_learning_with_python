@@ -1,6 +1,6 @@
 ## CHAPTER 1: CREATING FEATURES
 
-// Getting to know your data
+a) Getting to know your data
 # Import pandas
 import pandas as pd
 
@@ -13,14 +13,14 @@ print(so_survey_df.head())
 # Print the data type of each column
 print(so_survey_df.dtypes)
 
-// Selecting specific data types
+b) Selecting specific data types
 # Create subset of only the numeric columns
 so_numeric_df = so_survey_df.select_dtypes(include=['int', 'float'])
 
 # Print the column names contained in so_survey_df_num
 print(so_numeric_df.columns)
 
-// One-hot encoding and dummy variables
+c) One-hot encoding and dummy variables
 1. One-hot encode the Country column, adding "OH" as a prefix for each column.
 # Convert the Country column to a one hot encoded Data Frame
 one_hot_encoded = pd.get_dummies(so_survey_df, columns=['Country'], prefix='OH')
@@ -42,7 +42,7 @@ print(dummy.columns)
            'DM_Russia', 'DM_South Africa', 'DM_Spain', 'DM_Sweeden', 'DM_UK', 'DM_USA', 'DM_Ukraine'],
           dtype='object')
 
-// Dealing with uncommon categories
+d) Dealing with uncommon categories
 # Create a series out of the Country column
 countries = so_survey_df['Country']
 
@@ -64,7 +64,7 @@ countries[mask] = 'Other'
 # Print the updated category counts
 print(pd.value_counts(countries))
 
-// Binarizing columns
+e) Binarizing columns
 # Create the Paid_Job column filled with zeros
 so_survey_df['Paid_Job'] = 0
 
@@ -74,7 +74,7 @@ so_survey_df.loc[so_survey_df['ConvertedSalary'] > 0, 'Paid_Job'] = 1
 # Print the first five rows of the columns
 print(so_survey_df[['Paid_Job', 'ConvertedSalary']].head())
 
-// Binning values
+f) Binning values
 1. Bin the value of the ConvertedSalary column in so_survey_df into 5 equal bins, in a new column called equal_binned.
 # Bin the continuous variable ConvertedSalary into 5 bins
 so_survey_df['equal_binned'] = pd.cut(so_survey_df['ConvertedSalary'], 5)
@@ -112,3 +112,288 @@ print(so_survey_df[['boundary_binned', 'ConvertedSalary']].head())
     2        Very low              0.0
     3             Low          21426.0
     4             Low          41671.0
+
+
+## CHAPTER 2: CREATING FEATURES
+
+a) How sparse is my data?
+# Subset the DataFrame
+sub_df = so_survey_df[['Age', 'Gender']]
+
+# Print the number of non-missing values
+print(sub_df.info())
+=> Output: <script.py> output:
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 999 entries, 0 to 998
+    Data columns (total 2 columns):
+     #   Column  Non-Null Count  Dtype 
+    ---  ------  --------------  ----- 
+     0   Age     999 non-null    int64 
+     1   Gender  693 non-null    object
+    dtypes: int64(1), object(1)
+    memory usage: 15.7+ KB
+    None
+
+b) Finding the missing values
+# Print the top 10 entries of the DataFrame
+print(sub_df.head(10))
+
+# Print the locations of the missing values
+print(sub_df.head(10).isnull())
+
+# Print the locations of the non-missing values
+print(sub_df.head(10).notnull())
+
+c) Listwise deletion
+# Print the number of rows and columns
+print(so_survey_df.shape)
+
+# Create a new DataFrame dropping all incomplete rows
+no_missing_values_rows = so_survey_df.dropna(how='any')
+
+# Print the shape of the new DataFrame
+print(no_missing_values_rows.shape)
+
+# Create a new DataFrame dropping all columns with incomplete rows
+no_missing_values_cols = so_survey_df.dropna(how='any', axis=1)
+
+# Print the shape of the new DataFrame
+print(no_missing_values_cols.shape)
+
+# Drop all rows where Gender is missing
+no_gender = so_survey_df.dropna(subset=['Gender'])
+
+# Print the shape of the new DataFrame
+print(no_gender.shape)
+
+d) Replacing missing values with constants
+# Replace missing values
+so_survey_df['Gender'].fillna(value='Not Given', inplace=True)
+
+# Print the count of each value
+print(so_survey_df['Gender'].value_counts())
+
+e) Filling continuous missing values
+# Print the first five rows of StackOverflowJobsRecommend column
+print(so_survey_df['StackOverflowJobsRecommend'].head())
+
+# Fill missing values with the mean
+so_survey_df['StackOverflowJobsRecommend'].fillna(so_survey_df['StackOverflowJobsRecommend'].mean(), inplace=True)
+
+# Round the StackOverflowJobsRecommend values
+so_survey_df['StackOverflowJobsRecommend'] = round(so_survey_df['StackOverflowJobsRecommend'])
+
+# Print the top 5 rows
+print(so_survey_df['StackOverflowJobsRecommend'].head())
+
+f) Dealing with stray characters (I)
+# Remove the commas in the column
+so_survey_df['RawSalary'] = so_survey_df['RawSalary'].str.replace(',', '')
+
+# Remove the dollar signs in the column
+so_survey_df['RawSalary'] = so_survey_df['RawSalary'].str.replace('$', '')
+
+g) Dealing with stray characters (II)
+# Attempt to convert the column to numeric values
+numeric_vals = pd.to_numeric(so_survey_df['RawSalary'], errors='coerce')
+
+# Find the indexes of missing values
+idx = numeric_vals.isna()
+
+# Print the relevant rows
+print(so_survey_df['RawSalary'][idx])
+
+# Replace the offending characters
+so_survey_df['RawSalary'] = so_survey_df['RawSalary'].str.replace('£', '')
+
+# Convert the column to float
+so_survey_df['RawSalary'] = so_survey_df['RawSalary'].astype('float')
+
+# Print the column
+print(so_survey_df['RawSalary'])
+
+h) Method chaining
+When applying multiple successive operations on the same column, you can "chain" these operations together for clarity and ease of management. This can be achieved by calling multiple methods sequentially:
+
+# Method chaining
+df['column'] = df['column'].method1().method2().method3()
+# Same as 
+df['column'] = df['column'].method1()
+df['column'] = df['column'].method2()
+df['column'] = df['column'].method3()
+
+# Use method chaining
+so_survey_df['RawSalary'] = so_survey_df['RawSalary']\
+                              .str.replace(',', '')\
+                              .str.replace('$', '')\
+                              .str.replace('£', '')\
+                              .astype('float')
+ 
+# Print the RawSalary column
+print(so_survey_df['RawSalary'])
+
+
+## CHAPTER 3: CONFORMING TO STATISTICAL ASSUMPTIONS
+
+a) What does your data look like? (I)
+# Create a histogram of all columns in the so_numeric_df DataFrame.
+so_numeric_df.hist()
+plt.show()
+
+# Create a boxplot of the Age and Years Experience columns in the so_numeric_df DataFrame.
+so_numeric_df[['Age', 'Years Experience']].boxplot()
+plt.show()
+
+# Create a boxplot of ConvertedSalary column in the so_numeric_df DataFrame.
+so_numeric_df[['ConvertedSalary']].boxplot()
+plt.show()
+
+b) What does your data look like? (II)
+# Import packages
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Plot pairwise relationships
+sns.pairplot(so_numeric_df)
+
+# Show plot
+plt.show()
+
+# Print summary statistics
+print(so_numeric_df.describe())
+=> Output: <script.py> output:
+           ConvertedSalary      Age  Years Experience
+    count        9.990e+02  999.000           999.000
+    mean         6.162e+04   36.003             9.962
+    std          1.761e+05   13.255             4.878
+    min          0.000e+00   18.000             0.000
+    25%          0.000e+00   25.000             7.000
+    50%          2.712e+04   35.000            10.000
+    75%          7.000e+04   45.000            13.000
+    max          2.000e+06   83.000            27.000
+
+c) Normalization
+# Import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
+
+# Instantiate MinMaxScaler
+MM_scaler = MinMaxScaler()
+
+# Fit MM_scaler to the data
+MM_scaler.fit(so_numeric_df[['Age']])
+
+# Transform the data using the fitted scaler
+so_numeric_df['Age_MM'] = MM_scaler.transform(so_numeric_df[['Age']])
+
+# Compare the origional and transformed column
+print(so_numeric_df[['Age_MM', 'Age']].head())
+=> Output (all values have been scaled between 0 and 1): <script.py> output:
+       Age_MM  Age
+    0   0.046   21
+    1   0.308   38
+    2   0.415   45
+    3   0.431   46
+    4   0.323   39
+
+d) Standardization
+# Import StandardScaler
+from sklearn.preprocessing import StandardScaler
+
+# Instantiate StandardScaler
+SS_scaler = StandardScaler()
+
+# Fit SS_scaler to the data
+SS_scaler.fit(so_numeric_df[['Age']])
+
+# Transform the data using the fitted scaler
+so_numeric_df['Age_SS'] = SS_scaler.transform(so_numeric_df[['Age']])
+
+# Compare the origional and transformed column
+print(so_numeric_df[['Age_SS', 'Age']].head())
+=> Output (values have been scaled linearly, but not between set values): <script.py> output:
+       Age_SS  Age
+    0  -1.132   21
+    1   0.151   38
+    2   0.679   45
+    3   0.755   46
+    4   0.226   39
+
+e) Log transformation
+# Import PowerTransformer
+from sklearn.preprocessing import PowerTransformer
+
+# Instantiate PowerTransformer
+pow_trans = PowerTransformer()
+
+# Train the transform on the data
+pow_trans.fit(so_numeric_df[['ConvertedSalary']])
+
+# Apply the power transform to the data
+so_numeric_df['ConvertedSalary_LG'] = pow_trans.transform(so_numeric_df[['ConvertedSalary']])
+
+# Plot the data before and after the transformation
+so_numeric_df[['ConvertedSalary', 'ConvertedSalary_LG']].hist()
+plt.show()
+
+f) Percentage based outlier removal
+# Find the 95th quantile
+quantile = so_numeric_df['ConvertedSalary'].quantile(0.95)
+
+# Trim the outliers
+trimmed_df = so_numeric_df[so_numeric_df['ConvertedSalary'] < quantile]
+
+# The original histogram
+so_numeric_df[['ConvertedSalary']].hist()
+plt.show()
+plt.clf()
+
+# The trimmed histogram
+trimmed_df[['ConvertedSalary']].hist()
+plt.show()
+
+g) Statistical outlier removal
+# Find the mean and standard dev
+std = so_numeric_df['ConvertedSalary'].std()
+mean = so_numeric_df['ConvertedSalary'].mean()
+
+# Calculate the cutoff
+cut_off = std * 3
+lower, upper = mean - cut_off, mean + cut_off
+
+# Trim the outliers
+trimmed_df = so_numeric_df[(so_numeric_df['ConvertedSalary'] < upper) \
+                           & (so_numeric_df['ConvertedSalary'] > lower)]
+
+# The trimmed box plot
+trimmed_df[['ConvertedSalary']].boxplot()
+plt.show()
+
+h) Train and testing transformations (I)
+# Import StandardScaler
+from sklearn.preprocessing import StandardScaler
+
+# Apply a standard scaler to the data
+SS_scaler = StandardScaler()
+
+# Fit the standard scaler to the data
+SS_scaler.fit(so_train_numeric[['Age']])
+
+# Transform the test data using the fitted scaler
+so_test_numeric['Age_ss'] = SS_scaler.transform(so_test_numeric[['Age']])
+print(so_test_numeric[['Age', 'Age_ss']].head())
+
+i) Train and testing transformations (II)
+train_std = so_train_numeric['ConvertedSalary'].std()
+train_mean = so_train_numeric['ConvertedSalary'].mean()
+
+cut_off = train_std * 3
+train_lower, train_upper = train_mean - cut_off, train_mean + cut_off
+
+# Trim the test DataFrame
+trimmed_df = so_test_numeric[(so_test_numeric['ConvertedSalary'] < train_upper) \
+                             & (so_test_numeric['ConvertedSalary'] > train_lower)]
+
+
+## CHAPTER 4: DEALING WITH TEXT DATA
+
+a)
