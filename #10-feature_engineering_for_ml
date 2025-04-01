@@ -454,4 +454,183 @@ print(speech_df[['text_clean', 'char_cnt', 'word_cnt', 'avg_word_length']])
     14  fellow citizens   without solicitation on my p...     28739      4821            5.961
     15  elected by the american people to the highest ...      6599      1092            6.043
 
-c)
+c) Counting words (I)
+# Import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Instantiate CountVectorizer
+cv = CountVectorizer()
+
+# Fit the vectorizer
+cv.fit(speech_df['text_clean'])
+
+# Print feature names
+print(cv.get_feature_names())
+
+d) Counting words (II)
+# Apply the vectorizer
+cv_transformed = cv.transform(speech_df['text_clean'])
+
+# Print the full array
+cv_array = cv_transformed.toarray()
+print(cv_array)
+=> Output: <script.py> output:
+    [[0 0 0 ... 0 0 0]
+     [0 0 0 ... 0 0 0]
+     [0 1 0 ... 0 0 0]
+     ...
+     [0 1 0 ... 0 0 0]
+     [0 0 0 ... 0 0 0]
+     [0 0 0 ... 0 0 0]]
+
+# Print the shape of cv_array
+print(cv_array.shape)
+=> Output: <script.py> output:
+    (58, 9043)
+
+e) Limiting your features
+# Import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Specify arguements to limit the number of features generated
+cv = CountVectorizer(min_df=0.2, max_df=0.8)
+
+# Fit, transform, and convert into array
+cv_transformed = cv.fit_transform(speech_df['text_clean'])
+cv_array = cv_transformed.toarray()
+
+# Print the array shape
+print(cv_array.shape)
+=> Output: <script.py> output:
+    [[ 0  0  0 ...  5  0  9]
+     [ 0  0  0 ...  0  0  1]
+     [ 0  0  0 ...  0  0  1]
+     ...
+     [ 0  1  0 ... 14  1  3]
+     [ 0  0  0 ...  5  1  0]
+     [ 0  0  0 ... 14  1 11]]
+<script.py> output:
+    (58, 818)
+
+f) Text to DataFrame
+# Create a DataFrame with these features
+cv_df = pd.DataFrame(cv_array, 
+                     columns=cv.get_feature_names()).add_prefix('Counts_')
+
+# Add the new columns to the original DataFrame
+speech_df_new = pd.concat([speech_df, cv_df], axis=1, sort=False)
+print(speech_df_new.head())
+=> <script.py> output:
+                    Name         Inaugural Address                      Date                                               text                                         text_clean  ...  Counts_years  \
+    0  George Washington   First Inaugural Address  Thursday, April 30, 1789  Fellow-Citizens of the Senate and of the House...  fellow citizens of the senate and of the house...  ...             1   
+    1  George Washington  Second Inaugural Address     Monday, March 4, 1793  Fellow Citizens:  I AM again called upon by th...  fellow citizens   i am again called upon by th...  ...             0   
+    2         John Adams         Inaugural Address   Saturday, March 4, 1797  WHEN it was first perceived, in early times, t...  when it was first perceived  in early times  t...  ...             3   
+    3   Thomas Jefferson   First Inaugural Address  Wednesday, March 4, 1801  Friends and Fellow-Citizens:  CALLED upon to u...  friends and fellow citizens   called upon to u...  ...             0   
+    4   Thomas Jefferson  Second Inaugural Address     Monday, March 4, 1805  PROCEEDING, fellow-citizens, to that qualifica...  proceeding  fellow citizens  to that qualifica...  ...             2   
+    
+       Counts_yet  Counts_you  Counts_young  Counts_your  
+    0           0           5             0            9  
+    1           0           0             0            1  
+    2           0           0             0            1  
+    3           2           7             0            7  
+    4           2           4             0            4  
+    
+    [5 rows x 826 columns]
+
+g) Tf-idf
+# Import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Instantiate TfidfVectorizer
+tv = TfidfVectorizer(max_features=100, stop_words='english')
+
+# Fit the vectroizer and transform the data
+tv_transformed = tv.fit_transform(speech_df['text_clean'])
+
+# Create a DataFrame with these features
+tv_df = pd.DataFrame(tv_transformed.toarray(), 
+                     columns=tv.get_feature_names()).add_prefix('TFIDF_')
+print(tv_df.head())
+=> Output: <script.py> output:
+       TFIDF_action  TFIDF_administration  TFIDF_america  TFIDF_american  TFIDF_americans  ...  TFIDF_war  TFIDF_way  TFIDF_work  TFIDF_world  TFIDF_years
+    0         0.000                 0.133          0.000           0.105              0.0  ...      0.000      0.061       0.000        0.046        0.053
+    1         0.000                 0.261          0.266           0.000              0.0  ...      0.000      0.000       0.000        0.000        0.000
+    2         0.000                 0.092          0.157           0.073              0.0  ...      0.024      0.000       0.000        0.064        0.073
+    3         0.000                 0.093          0.000           0.000              0.0  ...      0.037      0.000       0.039        0.096        0.000
+    4         0.041                 0.040          0.000           0.031              0.0  ...      0.094      0.000       0.000        0.055        0.063
+    
+    [5 rows x 100 columns]
+
+h) Inspecting Tf-idf values
+# Isolate the row to be examined
+sample_row = tv_df.iloc[0]
+
+# Print the top 5 words of the sorted output
+print(sample_row.sort_values(ascending=False).head())
+=> Output: <script.py> output:
+    TFIDF_government    0.367
+    TFIDF_public        0.333
+    TFIDF_present       0.315
+    TFIDF_duty          0.239
+    TFIDF_country       0.230
+    Name: 0, dtype: float64
+
+i) Transforming unseen data (the vectorizer should only be fit on the train set, never on your test set)
+# Instantiate TfidfVectorizer
+tv = TfidfVectorizer(max_features=100, stop_words='english')
+
+# Fit the vectroizer and transform the data
+tv_transformed = tv.fit_transform(train_speech_df['text_clean'])
+
+# Transform test data
+test_tv_transformed = tv.transform(test_speech_df['text_clean'])
+
+# Create new features for the test set
+test_tv_df = pd.DataFrame(test_tv_transformed.toarray(), 
+                          columns=tv.get_feature_names()).add_prefix('TFIDF_')
+print(test_tv_df.head())
+=> Output: <script.py> output:
+       TFIDF_action  TFIDF_administration  TFIDF_america  TFIDF_american  TFIDF_authority  ...  TFIDF_war  TFIDF_way  TFIDF_work  TFIDF_world  TFIDF_years
+    0         0.000                 0.030          0.234           0.083            0.000  ...      0.079      0.033       0.000        0.300        0.135
+    1         0.000                 0.000          0.547           0.037            0.000  ...      0.053      0.067       0.079        0.278        0.126
+    2         0.000                 0.000          0.127           0.135            0.000  ...      0.043      0.054       0.096        0.225        0.044
+    3         0.037                 0.067          0.267           0.031            0.040  ...      0.030      0.038       0.236        0.237        0.062
+    4         0.000                 0.000          0.222           0.157            0.028  ...      0.021      0.081       0.120        0.300        0.153
+    
+    [5 rows x 100 columns]
+
+j) Using longer n-grams
+So far you have created features based on individual words in each of the texts. This can be quite powerful when used in a machine learning model but you may be concerned that by looking at words individually a lot of the context is being ignored. To deal with this when creating models you can use n-grams which are sequence of n words grouped together. For example:
+bigrams: Sequences of two consecutive words
+trigrams: Sequences of two consecutive words
+
+# Import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Instantiate a trigram vectorizer
+cv_trigram_vec = CountVectorizer(max_features=100, 
+                                 stop_words='english', 
+                                 ngram_range = (3,3))
+
+# Fit and apply trigram vectorizer
+cv_trigram = cv_trigram_vec.fit_transform(speech_df['text_clean'])
+
+# Print the trigram features
+print(cv_trigram_vec.get_feature_names())
+=> Output: <script.py> output:
+    ['ability preserve protect', 'agriculture commerce manufactures', 'america ideal freedom', 'amity mutual concession', 'anchor peace home', 'ask bow heads', 'best ability preserve', 'best interests country', 'bless god bless', 'bless united states', 'chief justice mr', 'children children children', 'citizens united states', 'civil religious liberty', 'civil service reform', 'commerce united states', 'confidence fellow citizens', 'congress extraordinary session', 'constitution does expressly', 'constitution united states', 'coordinate branches government', 'day task people', 'defend constitution united', 'distinction powers granted', 'distinguished guests fellow', 'does expressly say', 'equal exact justice', 'era good feeling', 'executive branch government', 'faithfully execute office', 'fellow citizens assembled', 'fellow citizens called', 'fellow citizens large', 'fellow citizens world', 'form perfect union', 'general welfare secure', 'god bless america', 'god bless god', 'good greatest number', 'government peace war', 'government united states', 'granted federal government', 'great body people', 'great political parties', 'greatest good greatest', 'guests fellow citizens', 'invasion wars powers', 'land new promise', 'laws faithfully executed', 'letter spirit constitution', 'liberty pursuit happiness', 'life liberty pursuit', 'local self government', 'make hard choices', 'men women children', 'mr chief justice', 'mr majority leader', 'mr president vice', 'mr speaker mr', 'mr vice president', 'nation like person', 'new breeze blowing', 'new states admitted', 'north south east', 'oath prescribed constitution', 'office president united', 'passed generation generation', 'peace shall strive', 'people united states', 'physical moral political', 'policy united states', 'power general government', 'preservation general government', 'preservation sacred liberty', 'preserve protect defend', 'president united states', 'president vice president', 'promote general welfare', 'proof confidence fellow', 'protect defend constitution', 'protection great interests', 'reform civil service', 'reserved states people', 'respect individual human', 'right self government', 'secure blessings liberty', 'south east west', 'sovereignty general government', 'states admitted union', 'territories united states', 'thank god bless', 'turning away old', 'united states america', 'united states best', 'united states government', 'united states great', 'united states maintain', 'united states territory', 'vice president mr', 'welfare secure blessings']
+
+k) Finding the most common words
+# Create a DataFrame of the features
+cv_tri_df = pd.DataFrame(cv_trigram.toarray(), 
+                         columns=cv_trigram_vec.get_feature_names()).add_prefix('Counts_')
+
+# Print the top 5 words in the sorted output
+print(cv_tri_df.sum().sort_values(ascending=False).head())
+=> Output: <script.py> output:
+    Counts_constitution united states    20
+    Counts_people united states          13
+    Counts_mr chief justice              10
+    Counts_preserve protect defend       10
+    Counts_president united states        8
+    dtype: int64
