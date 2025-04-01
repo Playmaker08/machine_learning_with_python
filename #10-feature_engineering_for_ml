@@ -396,4 +396,62 @@ trimmed_df = so_test_numeric[(so_test_numeric['ConvertedSalary'] < train_upper) 
 
 ## CHAPTER 4: DEALING WITH TEXT DATA
 
-a)
+a) Cleaning up your text
+# Print the first 5 rows of the text column
+print(speech_df['text'].head())
+=? Output: <script.py> output:
+    0    Fellow-Citizens of the Senate and of the House...
+    1    Fellow Citizens:  I AM again called upon by th...
+    2    WHEN it was first perceived, in early times, t...
+    3    Friends and Fellow-Citizens:  CALLED upon to u...
+    4    PROCEEDING, fellow-citizens, to that qualifica...
+    Name: text, dtype: object
+
+# Replace all non letter characters with a whitespace
+speech_df['text_clean'] = speech_df['text'].str.replace('[^a-zA-Z]', ' ')
+
+# Change to lower case
+speech_df['text_clean'] = speech_df['text_clean'].str.lower()
+
+# Print the first 5 rows of the text_clean column
+print(speech_df['text_clean'].head())
+=> Output: <script.py> output:
+    0    fellow citizens of the senate and of the house...
+    1    fellow citizens   i am again called upon by th...
+    2    when it was first perceived  in early times  t...
+    3    friends and fellow citizens   called upon to u...
+    4    proceeding  fellow citizens  to that qualifica...
+    Name: text_clean, dtype: object
+
+b) High level text features
+# Find the length of each text
+speech_df['char_cnt'] = speech_df['text_clean'].str.len()
+
+# Count the number of words in each text
+speech_df['word_cnt'] = speech_df['text_clean'].str.split().str.len()
+
+# Find the average length of word
+speech_df['avg_word_length'] = speech_df['char_cnt'] / speech_df['word_cnt']
+
+# Print the first 5 rows of these columns
+print(speech_df[['text_clean', 'char_cnt', 'word_cnt', 'avg_word_length']])
+=> Output: <script.py> output:
+                                               text_clean  char_cnt  word_cnt  avg_word_length
+    0   fellow citizens of the senate and of the house...      8616      1432            6.017
+    1   fellow citizens   i am again called upon by th...       787       135            5.830
+    2   when it was first perceived  in early times  t...     13871      2323            5.971
+    3   friends and fellow citizens   called upon to u...     10144      1736            5.843
+    4   proceeding  fellow citizens  to that qualifica...     12902      2169            5.948
+    5   unwilling to depart from examples of the most ...      7003      1179            5.940
+    6   about to add the solemnity of an oath to the o...      7148      1211            5.903
+    7   i should be destitute of feeling if i was not ...     19894      3382            5.882
+    8   fellow citizens   i shall not attempt to descr...     26322      4466            5.894
+    9   in compliance with an usage coeval with the ex...     17753      2922            6.076
+    10  fellow citizens   about to undertake the arduo...      6818      1130            6.034
+    11  fellow citizens   the will of the american peo...      7061      1179            5.989
+    12  fellow citizens  the practice of all my predec...     23527      3912            6.014
+    13  called from a retirement which i had supposed ...     32706      5585            5.856
+    14  fellow citizens   without solicitation on my p...     28739      4821            5.961
+    15  elected by the american people to the highest ...      6599      1092            6.043
+
+c)
