@@ -215,4 +215,20 @@ print("The precision value is {0:.2f}".format(score))
 => Output: <script.py> output:
     The precision value is 0.79 (With a precision of only 79%, you may need to try some other modeling techniques to improve this score.)
 
-i)
+i) Error due to under/over-fitting
+1. Create a random forest model with 25 trees, a random state of 1111, and max_features of 2. Read the print statements.
+# Update the rfr model with the 
+rfr = RandomForestRegressor(n_estimators=25,
+                            random_state=1111,
+                            max_features=2) // max_features can be set to different values
+rfr.fit(X_train, y_train)
+
+# Print the training and testing accuracies 
+print('The training error is {0:.2f}'.format(
+  mae(y_train, rfr.predict(X_train))))
+print('The testing error is {0:.2f}'.format(
+  mae(y_test, rfr.predict(X_test))))
+
+=> Sometimes, setting parameter values can make a huge difference in model performance.
+
+j)
