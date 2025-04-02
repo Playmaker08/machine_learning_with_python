@@ -156,4 +156,63 @@ print('The MAE for East teams is {}'.format(
 # Print the West accuracy
 print('The MAE for West conference is {}'.format(west_error))
 
-f)
+f) Confusion matrices
+Confusion matrices are a great way to start exploring your model's accuracy. They provide the values needed to calculate a wide range of metrics, including sensitivity, specificity, and the F1-score.
+
+You have built a classification model to predict if a person has a broken arm based on an X-ray image. On the testing set, you have the following confusion matrix:
+
+Prediction: 0	Prediction: 1
+Actual: 0	324 (TN)	15 (FP)
+Actual: 1	123 (FN)	491 (TP)
+
+# Calculate and print the accuracy
+accuracy = (491 + 324) / (953)
+print("The overall accuracy is {0: 0.2f}".format(accuracy))
+
+# Calculate and print the precision
+precision = (491) / (491 + 15)
+print("The precision is {0: 0.2f}".format(precision))
+
+# Calculate and print the recall
+recall = (491) / (491 + 123)
+print("The recall is {0: 0.2f}".format(recall))
+=> Output: <script.py> output:
+    The overall accuracy is  0.86
+    The precision is  0.97
+    The recall is  0.80
+
+g) Confusion matrices, again (Here, you have created a random forest model using the tic_tac_toe dataset rfc to predict outcomes of 0 (loss) or 1 (a win) for Player One.)
+from sklearn.metrics import confusion_matrix
+
+# Create predictions
+test_predictions = rfc.predict(X_test)
+
+# Create and print the confusion matrix
+cm = confusion_matrix(y_test, test_predictions)
+print(cm)
+
+# Print the true positives (actual 1s that were predicted 1s)
+print("The number of true positives is: {}".format(cm[1, 1]))
+=> Output: <script.py> output:
+    [[177 123]
+     [ 92 471]]
+    The number of true positives is: 471 (Row 1, column 1 represents the number of actual 1s that were predicted 1s (the true positives)).
+
+h) Precision vs. recall
+For this example, let's assume you are a really sore loser when it comes to playing Tic-Tac-Toe, but only when you are certain that you are going to win.
+Choose the most appropriate accuracy metric, either precision or recall, to complete this example. But remember, if you think you are going to win, you better win!
+Use rfc, which is a random forest classification model built on the tic_tac_toe dataset.
+
+from sklearn.metrics import precision_score
+
+test_predictions = rfc.predict(X_test)
+
+# Create precision or recall score based on the metric you imported
+score = precision_score(y_test, test_predictions)
+
+# Print the final result
+print("The precision value is {0:.2f}".format(score))
+=> Output: <script.py> output:
+    The precision value is 0.79 (With a precision of only 79%, you may need to try some other modeling techniques to improve this score.)
+
+i)
