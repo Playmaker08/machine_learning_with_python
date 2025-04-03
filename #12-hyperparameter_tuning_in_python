@@ -1,3 +1,75 @@
 ## CHAPTER 1: HYPERPARAMETERS AND PARAMETERS
 
-a)
+coef_ contains the important information about coefficients on our variables in the model. We do not set this, it is learned by the algorithm through the modeling process.
+
+a) Extracting a Logistic Regression parameter
+# Create a list of original variable names from the training DataFrame
+original_variables = X_train.columns
+
+# Extract the coefficients of the logistic regression estimator
+model_coefficients = log_reg_clf.coef_[0]
+
+# Create a dataframe of the variables and coefficients & print it out
+coefficient_df = pd.DataFrame({"Variable" : original_variables, "Coefficient": model_coefficients})
+print(coefficient_df)
+
+# Print out the top 3 positive variables
+top_three_df = coefficient_df.sort_values(by="Coefficient", axis=0, ascending=False)[0:3]
+print(top_three_df)
+=> Output: <script.py> output:
+           Variable  Coefficient
+    0     LIMIT_BAL   -3.926e-06
+    1           AGE   -3.170e-06
+    2         PAY_0    2.189e-07
+    3         PAY_2    1.129e-07
+    4         PAY_3    1.110e-07
+    5         PAY_4    1.264e-07
+    6         PAY_5    1.291e-07
+    7         PAY_6    1.235e-07
+    8     BILL_AMT1   -7.001e-06
+    9     BILL_AMT2   -4.343e-06
+    10    BILL_AMT3    4.402e-06
+    11    BILL_AMT4    1.599e-05
+    12    BILL_AMT5    3.373e-06
+    13    BILL_AMT6   -2.527e-06
+    14     PAY_AMT1   -6.498e-05
+    15     PAY_AMT2   -9.547e-05
+    16     PAY_AMT3   -5.436e-05
+    17     PAY_AMT4   -3.596e-05
+    18     PAY_AMT5   -3.400e-05
+    19     PAY_AMT6    3.083e-06
+    20        SEX_2   -7.633e-08
+    21  EDUCATION_1   -7.142e-09
+    22  EDUCATION_2   -6.246e-08
+    23  EDUCATION_3   -2.333e-08
+    24  EDUCATION_4   -1.172e-09
+    25  EDUCATION_5   -2.403e-09
+    26  EDUCATION_6   -2.595e-10
+    27   MARRIAGE_1   -2.480e-08
+    28   MARRIAGE_2   -7.474e-08
+    29   MARRIAGE_3    2.855e-09
+         Variable  Coefficient
+    11  BILL_AMT4    1.599e-05
+    10  BILL_AMT3    4.402e-06
+    12  BILL_AMT5    3.373e-06
+The coefficients of the model allow you to see which variables are having a larger or smaller impact on the outcome. Additionally the sign lets you know if it is a positive or negative relationship.
+
+b) Extracting a Random Forest parameter
+# Extract the 7th (index 6) tree from the random forest
+chosen_tree = rf_clf.estimators_[6]
+
+# Visualize the graph using the provided image
+imgplot = plt.imshow(tree_viz_image)
+plt.show()
+
+# Extract the parameters and level of the top (index 0) node
+split_column = chosen_tree.tree_.feature[0]
+split_column_name = X_train.columns[split_column]
+split_value = chosen_tree.tree_.threshold[0]
+
+# Print out the feature and level
+print("This node split on feature {}, at a value of {}".format(split_column_name, split_value))
+=> Output: <script.py> output:
+    This node split on feature PAY_AMT4, at a value of 3869.5
+
+c)
