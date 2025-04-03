@@ -231,4 +231,248 @@ print('The testing error is {0:.2f}'.format(
 
 => Sometimes, setting parameter values can make a huge difference in model performance.
 
-j)
+j) Am I underfitting?
+You are creating a random forest model to predict if you will win a future game of Tic-Tac-Toe. Using the tic_tac_toe dataset, you have created training and testing datasets, X_train, X_test, y_train, and y_test.
+You have decided to create a bunch of random forest models with varying amounts of trees (1, 2, 3, 4, 5, 10, 20, and 50). The more trees you use, the longer your random forest model will take to run. However, if you don't use enough trees, you risk underfitting. You have created a for loop to test your model at the different number of trees.
+
+from sklearn.metrics import accuracy_score
+
+test_scores, train_scores = [], []
+for i in [1, 2, 3, 4, 5, 10, 20, 50]:
+    rfc = RandomForestClassifier(n_estimators=i, random_state=1111)
+    rfc.fit(X_train, y_train)
+    # Create predictions for the X_train and X_test datasets.
+    train_predictions = rfc.predict(X_train)
+    test_predictions = rfc.predict(X_test)
+    # Append the accuracy score for the test and train predictions.
+    train_scores.append(round(accuracy_score(y_train, train_predictions), 2))
+    test_scores.append(round(accuracy_score(y_test, test_predictions), 2))
+# Print the train and test scores.
+print("The training scores were: {}".format(train_scores))
+print("The testing scores were: {}".format(test_scores))
+=> Output: <script.py> output:
+    The training scores were: [0.94, 0.93, 0.98, 0.97, 0.99, 1.0, 1.0, 1.0]
+    The testing scores were: [0.83, 0.79, 0.89, 0.91, 0.91, 0.93, 0.97, 0.98]
+
+
+## CHAPTER 3: CROSS VALIDATION
+
+a) Two samples
+After building several classification models based on thetic_tac_toe dataset, you realize that some models do not generalize as well as others. You have created training and testing splits just as you have been taught, so you are curious why your validation process is not working.
+
+After trying a different training, test split, you noticed differing accuracies for your machine learning model. Before getting too frustrated with the varying results, you have decided to see what else could be going on.
+
+# Create two different samples of 200 observations 
+sample1 = tic_tac_toe.sample(200, random_state=1111)
+sample2 = tic_tac_toe.sample(200, random_state=1171)
+
+# Print the number of common observations 
+print(len([index for index in sample1.index if index in sample2.index]))
+
+# Print the number of observations in the Class column
+print(sample1['Class'].value_counts())
+print(sample2['Class'].value_counts())
+
+=> Output: <script.py> output:
+    40
+    positive    134
+    negative     66
+    Name: Class, dtype: int64
+    positive    123
+    negative     77
+    Name: Class, dtype: int64
+Notice that there are a varying number of positive observations for both sample test sets. Sometimes creating a single test holdout sample is not enough to achieve the high levels of model validation you want. You need to use something more robust.
+
+b) scikit-learn's KFold()
+To get a better estimate for how accurate this random forest model will be on new data, you have decided to generate some indices to use for KFold cross-validation.
+
+from sklearn.model_selection import KFold
+
+# Use KFold
+kf = KFold(n_splits=5, shuffle=True, random_state=1111)
+
+# Create splits
+splits = kf.split(X)
+
+# Print the number of indices
+for train_index, val_index in splits:
+    print("Number of training indices: %s" % len(train_index))
+    print("Number of validation indices: %s" % len(val_index))
+=> Output: <script.py> output:
+    Number of training indices: 68
+    Number of validation indices: 17
+    Number of training indices: 68
+    Number of validation indices: 17
+    Number of training indices: 68
+    Number of validation indices: 17
+    Number of training indices: 68
+    Number of validation indices: 17
+    Number of training indices: 68
+    Number of validation indices: 17
+
+c) Using KFold indices
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+
+rfc = RandomForestRegressor(n_estimators=25, random_state=1111)
+
+# Access the training and validation indices of splits
+for train_index, val_index in splits:
+    # Setup the training and validation data
+    X_train, y_train = X[train_index], y[train_index]
+    X_val, y_val = X[val_index], y[val_index]
+    # Fit the random forest model
+    rfc.fit(X_train, y_train)
+    # Make predictions, and print the accuracy
+    predictions = rfc.predict(X_val)
+    print("Split accuracy: " + str(mean_squared_error(y_val, predictions)))
+=> Output: <script.py> output:
+    Split accuracy: 150.99298148707666
+    Split accuracy: 171.22206240542593
+    Split accuracy: 131.72569156195593
+    Split accuracy: 80.61940183841385
+    Split accuracy: 221.63020627476214
+
+d) scikit-learn's methods
+# Instruction 1: Load the cross-validation method
+from sklearn.model_selection import cross_val_score
+
+# Instruction 2: Load the random forest regression model
+from sklearn.ensemble import RandomForestRegressor
+
+# Instruction 3: Load the mean squared error method
+# Instruction 4: Load the function for creating a scorer
+from sklearn.metrics import mean_squared_error, make_scorer
+
+e) Implement cross_val_score()
+rfc = RandomForestRegressor(n_estimators=25, random_state=1111)
+mse = make_scorer(mean_squared_error)
+
+# Set up cross_val_score
+cv = cross_val_score(estimator=rfc,
+                     X=X_train,
+                     y=y_train,
+                     cv=10,
+                     scoring=make_scorer(mean_squared_error))
+
+# Print the mean error
+print(cv.mean())
+
+When to use Leave-one-out-cross-validation (LOOCV)? 
+Use when: amount of training data is limited; desire absolute best error estimate for new data
+Be cautious: Computational resources are limited; having lots of data; having lots of parameters to test
+
+f) Leave-one-out-cross-validation
+from sklearn.metrics import mean_absolute_error, make_scorer
+
+# Create scorer
+mae_scorer = make_scorer(mean_absolute_error)
+
+rfr = RandomForestRegressor(n_estimators=15, random_state=1111)
+
+# Implement LOOCV
+scores = cross_val_score(rfr, X=X, y=y, cv=y.shape[0], scoring=mae_scorer)
+
+# Print the mean and standard deviation
+print("The mean of the errors is: %s." % np.mean(scores))
+print("The standard deviation of the errors is: %s." % np.std(scores))
+=> Output: <script.py> output:
+    The mean of the errors is: 9.52044832324183.
+    The standard deviation of the errors is: 7.349020637882744.
+
+
+## CHAPTER 4: SELECTING THE BEST MODEL WITH HYPERPARAMETER TUNING
+
+Hyperparameters: Manually set before training occurs; specify how the training is supposed to happen.
+Hyperparameter tuning: Select hyperparameters; Run a single model type at different value sets; Create possible value range to select from.
+
+a) Creating Hyperparameters
+# Review the parameters of rfr
+print(rfr.get_params())
+
+# Maximum Depth
+max_depth = [4, 8, 12]
+
+# Minimum samples for a split
+min_samples_split = [2, 5, 10]
+
+# Max features 
+max_features = [4, 6, 8, 10]
+=> Output: <script.py> output:
+    {'bootstrap': True, 'ccp_alpha': 0.0, 'criterion': 'squared_error', 'max_depth': None, 'max_features': 'auto', 'max_leaf_nodes': None, 'max_samples': None, 'min_impurity_decrease': 0.0, 'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 'n_estimators': 100, 'n_jobs': None, 'oob_score': False, 'random_state': 1111, 'verbose': 0, 'warm_start': False}
+
+b) Running a model using ranges
+from sklearn.ensemble import RandomForestRegressor
+
+# Fill in rfr using your variables
+rfr = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=random.choice(max_depth),
+    min_samples_split=random.choice(min_samples_split),
+    max_features=random.choice(max_features))
+
+# Print out the parameters
+print(rfr.get_params())
+
+c) Preparing for RandomizedSearch
+You tried running a few different models by randomly selecting hyperparameters. However, running each model required you to code it individually. After learning about RandomizedSearchCV(), you're revisiting your professors challenge to build the best model. In this exercise, you will prepare the three necessary inputs for completing a random search.
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import make_scorer, mean_squared_error
+
+# Finish the dictionary by adding the max_depth parameter
+param_dist = {"max_depth": [2, 4, 6, 8],
+              "max_features": [2, 4, 6, 8, 10],
+              "min_samples_split": [2, 4, 8, 16]}
+
+# Create a random forest regression model
+rfr = RandomForestRegressor(n_estimators=10, random_state=1111)
+
+# Create a scorer to use (use the mean squared error)
+scorer = make_scorer(mean_squared_error)
+
+d) Implementing RandomizedSearchCV
+# Import the method for random search
+from sklearn.model_selection import RandomizedSearchCV
+
+# Build a random search using param_dist, rfr, and scorer
+random_search =\
+    RandomizedSearchCV(
+        estimator=rfr,
+        param_distributions=param_dist,
+        n_iter=10,
+        cv=5,
+        scoring=scorer)
+
+e) Best classification accuracy
+You are in a competition at work to build the best model for predicting the winner of a Tic-Tac-Toe game. You already ran a random search and saved the results of the most accurate model to rs. Which parameter set produces the best classification accuracy?
+
+Solution: rs.best_params_
+Output: {'n_estimators': 20, 'min_samples_split': 4, 'max_depth': 12}
+
+Note: rs.best_estimator_ contains the information of the best model
+Output: RandomForestClassifier(max_depth=12, min_samples_split=4, n_estimators=20,
+                       random_state=1111)
+
+f) Selecting the best precision model
+SITUATION: Your boss has offered to pay for you to see three sports games this year. Of the 41 home games your favorite team plays, you want to ensure you go to three home games that they will definitely win. You build a model to decide which games your team will win. To do this, you will build a random search algorithm and focus on model precision (to ensure your team wins). You also want to keep track of your best model and best parameters, so that you can use them again next year (if the model does well, of course). You have already decided on using the random forest classification model rfc and generated a parameter distribution param_dist.
+
+from sklearn.metrics import precision_score, make_scorer
+
+# Create a precision scorer
+precision = make_scorer(precision_score)
+# Finalize the random search
+rs = RandomizedSearchCV(
+  estimator=rfc, param_distributions=param_dist,
+  scoring = precision,
+  cv=5, n_iter=10, random_state=1111)
+rs.fit(X, y)
+
+# print the mean test scores:
+print('The accuracy for each run was: {}.'.format(rs.cv_results_['mean_test_score']))
+# print the best model score:
+print('The best accuracy for a single model was: {}'.format(rs.best_score_))
+=> Output: <script.py> output:
+    The accuracy for each run was: [0.87614978 0.75561877 0.67740077 0.89141614 0.87024051 0.85772772
+     0.68244199 0.82867397 0.88717239 0.91980724].
+    The best accuracy for a single model was: 0.9198072369317106
