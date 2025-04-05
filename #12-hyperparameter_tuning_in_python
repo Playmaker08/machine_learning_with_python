@@ -180,4 +180,68 @@ plt.show()
 
 ## CHAPTER 2: GRID SEARCH
 
-a)
+a) Build Grid Search functions
+# Create the function
+def gbm_grid_search(learning_rate, max_depth):
+
+	# Create the model
+    model = GradientBoostingClassifier(learning_rate=learning_rate, max_depth=max_depth)
+    
+    # Use the model to make predictions
+    predictions = model.fit(X_train, y_train).predict(X_test)
+    
+    # Return the hyperparameters and score
+    return([learning_rate, max_depth, accuracy_score(y_test, predictions)])
+You now have a function you can call to test different combinations of two hyperparameters for the GBM algorithm.
+
+b) Iteratively tune multiple hyperparameters
+1. Write a for-loop to test the values (0.01, 0.1, 0.5) for the learning_rate and (2, 4, 6) for the max_depth using the function you created gbm_grid_search and print the results.
+# Create the relevant lists
+results_list = []
+learn_rate_list = [0.01, 0.1, 0.5]
+max_depth_list = [2,4,6]
+
+# Create the for loop
+for learn_rate in learn_rate_list:
+    for max_depth in max_depth_list:
+        results_list.append(gbm_grid_search(learn_rate,max_depth))
+
+# Print the results
+print(results_list)   
+=> Output: <script.py> output:
+    [[0.01, 2, 0.78], [0.01, 4, 0.78], [0.01, 6, 0.76], [0.1, 2, 0.74], [0.1, 4, 0.76], [0.1, 6, 0.75], [0.5, 2, 0.73], [0.5, 4, 0.74], [0.5, 6, 0.74]]
+
+2. Extend the gbm_grid_search function to include the hyperparameter subsample. Name this new function gbm_grid_search_extended.
+# Extend the function input
+def gbm_grid_search_extended(learn_rate, max_depth, subsample):
+
+	# Extend the model creation section
+    model = GradientBoostingClassifier(learning_rate=learn_rate, max_depth=max_depth, subsample=subsample)
+    
+    predictions = model.fit(X_train, y_train).predict(X_test)
+    
+    # Extend the return part
+    return([learn_rate, max_depth, subsample, accuracy_score(y_test, predictions)])
+
+3. Extend your loop to call gbm_grid_search (available in your console), then test the values [0.4 , 0.6] for the subsample hyperparameter and print the results. max_depth_list & learn_rate_list are available in your environment.
+results_list = []
+
+# Create the new list to test
+subsample_list = [0.4, 0.6]
+
+for learn_rate in learn_rate_list:
+    for max_depth in max_depth_list:
+    	
+        # Extend the for loop
+        for subsample in subsample_list:
+        	
+            # Extend the results to include the new hyperparameter
+            results_list.append(gbm_grid_search_extended(learn_rate, max_depth, subsample))
+
+# Print results
+print(results_list)     
+=> Output: <script.py> output:
+    [[0.01, 2, 0.4, 0.73], [0.01, 2, 0.6, 0.74], [0.01, 4, 0.4, 0.73], [0.01, 4, 0.6, 0.76], [0.01, 6, 0.4, 0.72], [0.01, 6, 0.6, 0.78], [0.1, 2, 0.4, 0.76], [0.1, 2, 0.6, 0.75], [0.1, 4, 0.4, 0.72], [0.1, 4, 0.6, 0.73], [0.1, 6, 0.4, 0.73], [0.1, 6, 0.6, 0.71], [0.5, 2, 0.4, 0.65], [0.5, 2, 0.6, 0.67], [0.5, 4, 0.4, 0.72], [0.5, 4, 0.6, 0.68], [0.5, 6, 0.4, 0.69], [0.5, 6, 0.6, 0.72]]
+You went from 2 to 3 hyperparameters and can see how you could extend that to even more values and hyperparameters.
+
+c)
