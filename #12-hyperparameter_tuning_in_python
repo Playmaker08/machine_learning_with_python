@@ -180,6 +180,13 @@ plt.show()
 
 ## CHAPTER 2: GRID SEARCH
 
+Steps for a Grid Search:
+1. Decide an algorithm/estimator
+2. Defining which hyperparameters we will tune
+3. Defining value range for each hyperparameter
+4. Setting cross-validation scheme and Define Score function
+5. Include extra useful information or functions
+
 a) Build Grid Search functions
 # Create the function
 def gbm_grid_search(learning_rate, max_depth):
@@ -244,4 +251,587 @@ print(results_list)
     [[0.01, 2, 0.4, 0.73], [0.01, 2, 0.6, 0.74], [0.01, 4, 0.4, 0.73], [0.01, 4, 0.6, 0.76], [0.01, 6, 0.4, 0.72], [0.01, 6, 0.6, 0.78], [0.1, 2, 0.4, 0.76], [0.1, 2, 0.6, 0.75], [0.1, 4, 0.4, 0.72], [0.1, 4, 0.6, 0.73], [0.1, 6, 0.4, 0.73], [0.1, 6, 0.6, 0.71], [0.5, 2, 0.4, 0.65], [0.5, 2, 0.6, 0.67], [0.5, 4, 0.4, 0.72], [0.5, 4, 0.6, 0.68], [0.5, 6, 0.4, 0.69], [0.5, 6, 0.6, 0.72]]
 You went from 2 to 3 hyperparameters and can see how you could extend that to even more values and hyperparameters.
 
-c)
+c) GridSearchCV with Scikit Learn
+# Create a Random Forest Classifier with specified criterion
+rf_class = RandomForestClassifier(criterion='entropy')
+
+# Create the parameter grid
+param_grid = {'max_depth': [2, 4, 8, 15], 'max_features': ['auto', 'sqrt']}
+
+# Create a GridSearchCV object
+grid_rf_class=GridSearchCV(
+    estimator=rf_class,
+    param_grid=param_grid,
+    scoring='roc_auc',
+    n_jobs=4,
+    cv=5,
+    refit=True, return_train_score=True)
+print(grid_rf_class)
+=> <script.py> output:
+    GridSearchCV(cv=5, estimator=RandomForestClassifier(criterion='entropy'),
+                 n_jobs=4,
+                 param_grid={'max_depth': [2, 4, 8, 15],
+                             'max_features': ['auto', 'sqrt']},
+                 return_train_score=True, scoring='roc_auc')
+
+d) Exploring the grid search results
+You will now explore the cv_results_ property of the GridSearchCV object defined in the video. This is a dictionary that we can read into a pandas DataFrame and contains a lot of useful information about the grid search we just undertook.
+
+A reminder of the different column types in this property:
+time_ columns
+param_ columns (one for each hyperparameter) and the singular params column (with all hyperparameter settings)
+a train_score column for each cv fold including the mean_train_score and std_train_score columns
+a test_score column for each cv fold including the mean_test_score and std_test_score columns
+a rank_test_score column with a number from 1 to n (number of iterations) ranking the rows based on their mean_test_score
+
+# Read the cv_results property into a dataframe & print it out
+cv_results_df = pd.DataFrame(grid_rf_class.cv_results_)
+print(cv_results_df)
+
+# Extract and print the column with a dictionary of hyperparameters used
+column = cv_results_df.loc[:, ["params"]]
+print(column)
+
+# Extract and print the row that had the best mean test score
+best_row = cv_results_df[cv_results_df["rank_test_score"] == 1]
+print(best_row)
+=> Output: <script.py> output:
+        mean_fit_time  std_fit_time  mean_score_time  std_score_time param_max_depth  ... split2_train_score split3_train_score split4_train_score  mean_train_score  std_train_score
+    0           0.507         0.004            0.031           0.006              10  ...              0.997              0.998              0.998             0.997        1.485e-03
+    1           0.986         0.006            0.050           0.002              10  ...              0.997              0.999              0.997             0.997        1.331e-03
+    2           1.518         0.019            0.088           0.017              10  ...              0.997              1.000              0.997             0.997        1.124e-03
+    3           0.475         0.003            0.024           0.003              10  ...              0.993              0.994              0.994             0.992        2.450e-03
+    4           1.005         0.007            0.051           0.004              10  ...              0.993              0.996              0.993             0.992        2.639e-03
+    5           1.382         0.016            0.084           0.014              10  ...              0.993              0.995              0.993             0.992        2.208e-03
+    6           0.486         0.004            0.030           0.002              20  ...              1.000              1.000              1.000             1.000        0.000e+00
+    7           1.028         0.008            0.052           0.002              20  ...              1.000              1.000              1.000             1.000        4.965e-17
+    8           1.568         0.019            0.090           0.009              20  ...              1.000              1.000              1.000             1.000        0.000e+00
+    9           0.484         0.013            0.034           0.008              20  ...              0.999              0.999              0.999             0.999        5.308e-04
+    10          1.098         0.008            0.069           0.011              20  ...              0.999              1.000              0.998             0.999        6.927e-04
+    11          1.332         0.025            0.053           0.004              20  ...              0.999              1.000              0.999             0.999        7.614e-04
+    
+    [12 rows x 23 columns]
+                                                   params
+    0   {'max_depth': 10, 'min_samples_leaf': 1, 'n_es...
+    1   {'max_depth': 10, 'min_samples_leaf': 1, 'n_es...
+    2   {'max_depth': 10, 'min_samples_leaf': 1, 'n_es...
+    3   {'max_depth': 10, 'min_samples_leaf': 2, 'n_es...
+    4   {'max_depth': 10, 'min_samples_leaf': 2, 'n_es...
+    5   {'max_depth': 10, 'min_samples_leaf': 2, 'n_es...
+    6   {'max_depth': 20, 'min_samples_leaf': 1, 'n_es...
+    7   {'max_depth': 20, 'min_samples_leaf': 1, 'n_es...
+    8   {'max_depth': 20, 'min_samples_leaf': 1, 'n_es...
+    9   {'max_depth': 20, 'min_samples_leaf': 2, 'n_es...
+    10  {'max_depth': 20, 'min_samples_leaf': 2, 'n_es...
+    11  {'max_depth': 20, 'min_samples_leaf': 2, 'n_es...
+       mean_fit_time  std_fit_time  mean_score_time  std_score_time param_max_depth  ... split2_train_score split3_train_score split4_train_score  mean_train_score  std_train_score
+    4          1.005         0.007            0.051           0.004              10  ...              0.993              0.996              0.993             0.992            0.003
+    
+    [1 rows x 23 columns]
+
+e) Analyzing the best results
+Three properties you will explore are:
+best_score_ – The score (here ROC_AUC) from the best-performing square.
+best_index_ – The index of the row in cv_results_ containing information on the best-performing square.
+best_params_ – A dictionary of the parameters that gave the best score, for example 'max_depth': 10
+The grid search object grid_rf_class is available.
+
+# Print out the ROC_AUC score from the best-performing square
+best_score = grid_rf_class.best_score_
+print(best_score)
+
+# Create a variable from the row related to the best-performing square
+cv_results_df = pd.DataFrame(grid_rf_class.cv_results_)
+best_row = cv_results_df.loc[[grid_rf_class.best_index_]]
+print(best_row)
+
+# Get the n_estimators parameter from the best-performing square and print
+best_n_estimators = grid_rf_class.best_params_["n_estimators"]
+print(best_n_estimators)
+=> Output: <script.py> output:
+    0.7677003813412153
+       mean_fit_time  std_fit_time  mean_score_time  std_score_time param_max_depth  ... split2_train_score split3_train_score split4_train_score  mean_train_score  std_train_score
+    4          1.005         0.007            0.051           0.004              10  ...              0.993              0.996              0.993             0.992            0.003
+    
+    [1 rows x 23 columns]
+    200
+
+f) Using the best results
+While it is interesting to analyze the results of our grid search, our final goal is practical in nature; we want to make predictions on our test set using our estimator object.
+We can access this object through the best_estimator_ property of our grid search object.
+Let's take a look inside the best_estimator_ property, make predictions, and generate evaluation scores. We will firstly use the default predict (giving class predictions), but then we will need to use predict_proba rather than predict to generate the roc-auc score as roc-auc needs probability scores for its calculation. We use a slice [:,1] to get probabilities of the positive class.
+
+# See what type of object the best_estimator_ property is
+print(type(grid_rf_class.best_estimator_))
+
+# Create an array of predictions directly using the best_estimator_ property
+predictions = grid_rf_class.best_estimator_.predict(X_test)
+
+# Take a look to confirm it worked, this should be an array of 1's and 0's
+print(predictions[0:5])
+
+# Now create a confusion matrix 
+print("Confusion Matrix \n", confusion_matrix(y_test, predictions))
+
+# Get the ROC-AUC score
+predictions_proba = grid_rf_class.best_estimator_.predict_proba(X_test)[:,1]
+print("ROC-AUC Score \n", roc_auc_score(y_test, predictions_proba))
+=> Output: <script.py> output:
+    <class 'sklearn.ensemble._forest.RandomForestClassifier'>
+    [0 0 0 0 1]
+    Confusion Matrix 
+     [[140   8]
+     [ 38  14]]
+    ROC-AUC Score 
+     0.7432432432432432
+
+
+## CHAPTER 3: RANDOM SEARCH
+
+Randomly chosen trials are more efficient for hyperparameter optimization than trials on a grid because: Not only hyperparameter is as important; A little TRICK of probability (ex: you need ~ 59 trials to have a high (95%) chance getting into that region) => Not guaranteed to find the best score in the sample space but likely to find a good one faster than Grid Search)
+Include all Grid Search steps but with an extra step: 6. Decide how many samples to take (then sample)
+
+a) Randomly Sample Hyperparameters
+# Create a list of values for the learning_rate hyperparameter
+learn_rate_list = list(np.linspace(0.01,1.5,200))
+
+# Create a list of values for the min_samples_leaf hyperparameter
+min_samples_list = list(range(10,41))
+
+# Combination list
+combinations_list = [list(x) for x in product(learn_rate_list, min_samples_list)]
+
+# Sample hyperparameter combinations for a random search.
+random_combinations_index = np.random.choice(range(0, len(combinations_list)), 250, replace=False)
+combinations_random_chosen = [combinations_list[x] for x in random_combinations_index]
+
+# Print the result
+print(combinations_random_chosen)
+=> Output: <script.py> output:
+    [[1.305326633165829, 14], [0.6015075376884422, 24], [0.6089949748743718, 35], [1.3128140703517588, 33], [0.3244723618090452, 23], [0.07738693467336683, 27], [0.2421105527638191, 18], [1.1855276381909547, 24], [0.17472361809045225, 11], [0.7662311557788944, 12], [1.0657286432160804, 39], [0.7287939698492463, 22], [1.2604020100502513, 40], [1.0881909547738693, 12], [1.2079899497487436, 39], [1.4475879396984925, 15], [1.327788944723618, 16], [0.7587437185929649, 37], [0.46673366834170854, 10], [0.2720603015075377, 22], [1.2079899497487436, 12], [1.095678391959799, 27], [0.5790452261306532, 31], [0.18969849246231157, 22], [0.17472361809045225, 40], [1.2604020100502513, 39], [0.33195979899497485, 39], [0.05492462311557789, 32], [0.6314572864321608, 40], ...
+
+b) Randomly Search with Random Forest
+As before, create some lists of hyperparameters that can be zipped up to a list of lists. You will use the hyperparameters criterion, max_depth and max_features of the random forest algorithm. Then you will randomly sample hyperparameter combinations in preparation for running a random search. You will use a slightly different package for sampling in this task, random.sample().
+
+# Create lists for criterion and max_features
+criterion_list = ["gini", "entropy"]
+max_feature_list = ["auto", "sqrt", "log2", None]
+
+# Create a list of values for the max_depth hyperparameter
+max_depth_list = list(range(3,56))
+
+# Combination list
+combinations_list = [list(x) for x in product(criterion_list, max_feature_list, max_depth_list)]
+
+# Sample hyperparameter combinations for a random search
+combinations_random_chosen = random.sample(combinations_list, 150)
+
+# Print the result
+print(combinations_random_chosen)
+=> Output: <script.py> output:
+    [['entropy', None, 16], ['entropy', None, 44], ['gini', 'sqrt', 5], ['gini', 'log2', 3], ['gini', 'auto', 5], ['gini', 'auto', 29], ['gini', 'sqrt', 53], ['entropy', 'log2', 7], ['entropy', 'sqrt', 10], ['gini', 'auto', 24], ['gini', None, 37], ['entropy', 'auto', 36], ['entropy', None, 24], ['gini', 'sqrt', 28], ['entropy', 'sqrt', 15], ['gini', None, 33], ['gini', 'log2', 47], ['gini', None, 20], ['entropy', 'sqrt', 14], ['gini', 'sqrt', 36], ['gini', None, 30], ['gini', 'sqrt', 31], ['gini', 'sqrt', 15], ['entropy', 'auto', 18], ['gini', 'auto', 4], ['gini', None, 3], ['entropy', 'sqrt', 5], ['entropy', None, 22], ['gini', 'log2', 6], ['gini', 'log2', 53], ['gini', 'auto', 43], ['gini', 'auto', 10], ['entropy', None, 3], ['entropy', 'auto', 48], ...
+
+c) Visualizing a Random Search
+# Confirm how many hyperparameter combinations & print
+number_combs = len(combinations_list)
+print(number_combs)
+
+# Sample and visualise specified combinations
+for x in [50, 500, 1500]:
+    sample_and_visualize_hyperparameters(x)
+    
+# Sample all the hyperparameter combinations & visualise
+sample_and_visualize_hyperparameters(number_combs)
+
+n_iter: number of samples for the random search to take from your grid
+
+d) The RandomizedSearchCV Object
+Just like the GridSearchCV library from Scikit Learn, RandomizedSearchCV provides many useful features to assist with efficiently undertaking a random search. You're going to create a RandomizedSearchCV object, making the small adjustment needed from the GridSearchCV object.
+
+The desired options are:
+A default Gradient Boosting Classifier Estimator
+5-fold cross validation
+Use accuracy to score the models
+Use 4 cores for processing in parallel
+Ensure you refit the best model and return training scores
+Randomly sample 10 models
+The hyperparameter grid should be for learning_rate (150 values between 0.1 and 2) and min_samples_leaf (all values between and including 20 and 64).
+
+# Create the parameter grid
+param_grid = {'learning_rate': np.linspace(0.1, 2, 150), 'min_samples_leaf': list(range(20, 65))} 
+
+# Create a random search object
+random_GBM_class = RandomizedSearchCV(
+    estimator = GradientBoostingClassifier(),
+    param_distributions = param_grid,
+    n_iter = 10,
+    scoring='accuracy', n_jobs=4, cv = 5, refit=True, return_train_score = True)
+
+# Fit to the training data
+random_GBM_class.fit(X_train, y_train)
+
+# Print the values used for both hyperparameters
+print(random_GBM_class.cv_results_['param_learning_rate'])
+print(random_GBM_class.cv_results_['param_min_samples_leaf'])
+=> Output: <script.py> output:
+    [1.1073825503355705 1.0691275167785235 0.4697986577181208
+     1.2476510067114095 1.5664429530201343 1.7577181208053692
+     1.859731543624161 1.5791946308724834 0.5463087248322147
+     1.7577181208053692]
+    [47 54 61 30 63 32 60 43 38 27]
+
+e) RandomSearchCV in Scikit Learn
+The hyperparameter grid should be for max_depth (all values between and including 5 and 25) and max_features ('auto' and 'sqrt').
+
+The desired options for the RandomizedSearchCV object are:
+A RandomForestClassifier Estimator with n_estimators of 80.
+3-fold cross validation (cv)
+Use roc_auc to score the models
+Use 4 cores for processing in parallel (n_jobs)
+Ensure you refit the best model and return training scores
+Only sample 5 models for efficiency (n_iter)
+X_train & y_train datasets are loaded for you.
+
+Remember, to extract the chosen hyperparameters these are found in cv_results_ with a column per hyperparameter. For example, the column for the hyperparameter criterion would be param_criterion.
+
+# Create the parameter grid
+param_grid = {'max_depth': list(range(5,26)), 'max_features': ['auto' , 'sqrt']} 
+
+# Create a random search object
+random_rf_class = RandomizedSearchCV(
+    estimator = RandomForestClassifier(n_estimators=80),
+    param_distributions = param_grid, n_iter = 5,
+    scoring='roc_auc', n_jobs=4, cv = 3, refit=True, return_train_score = True)
+
+# Fit to the training data
+random_rf_class.fit(X_train, y_train)
+
+# Print the values used for both hyperparameters
+print(random_rf_class.cv_results_['param_max_depth'])
+print(random_rf_class.cv_results_['param_max_features'])
+=> <script.py> output:
+    [18 11 10 22 10]
+    ['sqrt' 'auto' 'sqrt' 'sqrt' 'auto']
+
+f) Grid and Random Search Side by Side
+
+You will have available:
+combinations_list which is a list of combinations of learn_rate and min_samples_leaf for this algorithm
+The function visualize_search() which will make your hyperparameter combinations into X and Y coordinates and plot both grid and random search combinations on the same graph. It takes as input two lists of hyperparameter combinations.
+
+If you wish to view the visualize_search() function definition, you can run this code:
+import inspect
+print(inspect.getsource(visualize_search))
+
+# Sample grid coordinates
+grid_combinations_chosen = combinations_list[0:300]
+
+# Print result
+print(grid_combinations_chosen)
+
+# Create a list of sample indexes
+sample_indexes = list(range(0,len(combinations_list)))
+
+# Randomly sample 300 indexes
+random_indexes = np.random.choice(sample_indexes, 300, replace=False)
+
+# Use indexes to create random sample
+random_combinations_chosen = [combinations_list[index] for index in random_indexes]
+
+# Call the function to produce the visualization
+visualize_search(grid_combinations_chosen, 
+=> How a grid search will cover a small area completely whilst random search will cover a much larger area but not completely.
+
+Uniformed Search (done so far): Each iteration of hyperparameter tuning does not learned from previous iterations => paralleliza our work
+Informed Search: Start out with a rough, random approach then iteratively refine your search. Steps below:
+1. Random search
+2. Find promising areas
+3. Grid search in smaller area (can be substituted with random searches
+4. Continue until optimal score obtained
+=> Better spending time and computational efforts
+
+a) Visualizing Coarse to Fine
+You're going to undertake the first part of a Coarse to Fine search. This involves analyzing the results of an initial random search that took place over a large search space, then deciding what would be the next logical step to make your hyperparameter search finer.
+
+You have available:
+combinations_list - a list of the possible hyperparameter combinations the random search was undertaken on.
+results_df - a DataFrame that has each hyperparameter combination and the resulting accuracy of all 500 trials. Each hyperparameter is a column, with the header the hyperparameter name.
+visualize_hyperparameter() - a function that takes in a column of the DataFrame (as a string) and produces a scatter plot of this column's values compared to the accuracy scores. An example call of the function would be visualize_hyperparameter('accuracy')
+
+If you wish to view the visualize_hyperparameter() function definition, you can run this code:
+import inspect
+print(inspect.getsource(visualize_hyperparameter))
+
+# Confirm the size of the combinations_list
+print(len(combinations_list))
+
+# Sort the results_df by accuracy and print the top 10 rows
+print(results_df.sort_values(by='accuracy', ascending=False).head(10))
+
+# Confirm which hyperparameters were used in this search
+print(results_df.columns)
+
+# Call visualize_hyperparameter() with each hyperparameter in turn
+visualize_hyperparameter('max_depth')
+visualize_hyperparameter('min_samples_leaf')
+visualize_hyperparameter('learn_rate')
+=> Output: <script.py> output:
+    10000
+        max_depth  min_samples_leaf  learn_rate  accuracy
+    1          10                14       0.477        97
+    4           6                12       0.771        97
+    2           7                14       0.050        96
+    3           5                12       0.023        96
+    5          13                11       0.290        96
+    6           6                10       0.317        96
+    7          19                10       0.758        96
+    8           2                16       0.932        96
+    9          16                13       0.905        96
+    10         12                13       0.891        96
+    Index(['max_depth', 'min_samples_leaf', 'learn_rate', 'accuracy'], dtype='object')
+We have undertaken the first step of a Coarse to Fine search. Results clearly seem better when max_depth is below 20. learn_rates smaller than 1 seem to perform well too. There is not a strong trend for min_samples leaf though.
+
+b) Coarse to Fine Iterations
+You will now visualize the first random search undertaken, construct a tighter grid and check the results. You will have available:
+results_df - a DataFrame that has the hyperparameter combination and the resulting accuracy of all 500 trials. Only the hyperparameters that had the strongest visualizations from the previous exercise are included (max_depth and learn_rate)
+visualize_first() - This function takes no arguments but will visualize each of your hyperparameters against accuracy for your first random search.
+
+If you wish to view the visualize_first() (or the visualize_second()) function definition, you can run this code:
+import inspect
+print(inspect.getsource(visualize_first))
+
+# Use the provided function to visualize the first results
+visualize_first()
+
+# Create some combinations lists & combine:
+max_depth_list = list(range(1,21))
+learn_rate_list = np.linspace(0.001,1,50)
+
+# Call the function to visualize the second results
+visualize_second()
+=> You can see in the second example our results are all generally higher. There also appears to be a bump around max_depths between 5 and 10 as well as learn_rate less than 0.2 so perhaps there is even more room for improvement!
+
+Bayes Rule: A statistical method using new evidence to iteratively update our beliefs about some outcome
+Undertaking bayesian hyperparameter tuning:
+1. Set the Domain: Our grid (with a bit of a twist)
+2. Set the Optimization algorithm (use default TPE)
+3. Objective function to minimize (we'll use 1-Accuracy)
+
+Genetics in ML: 
+1. Create some models
+2. Pick the best (by scoring function)
+3. Create new models similar to best ones
+4. Add in some randomness so we don't reach a local optimum
+5. Repeat until we're happy
+
+c) Bayes Rule in Python
+In this exercise you will undertake a practical example of setting up Bayes formula, obtaining new evidence and updating your 'beliefs' in order to get a more accurate result. The example will relate to the likelihood that someone will close their account for your online software product.
+
+These are the probabilities we know:
+7% (0.07) of people are likely to close their account next month
+15% (0.15) of people with accounts are unhappy with your product (you don't know who though!)
+35% (0.35) of people who are likely to close their account are unhappy with your product
+
+# Assign probabilities to variables 
+p_unhappy = 0.15
+p_unhappy_close = 0.35
+
+# Probabiliy someone will close
+p_close = 0.07
+
+# Probability unhappy person will close
+p_close_unhappy = (p_unhappy_close * p_close) / p_unhappy
+print(p_close_unhappy)
+=> Output: <script.py> output:
+    0.16333333333333336
+There's a 16.3% chance that a customer, given that they are unhappy, will close their account. Next we'll use a package which uses this methodology to automatically tune hyperparameters for us.
+
+d) Bayesian Hyperparameter tuning with Hyperopt
+In this example you will set up and run a Bayesian hyperparameter optimization process using the package Hyperopt (already imported as hp for you). You will set up the domain (which is similar to setting up the grid for a grid search), then set up the objective function. Finally, you will run the optimizer over 20 iterations.
+
+You will need to set up the domain using values:
+max_depth using quniform distribution (between 2 and 10, increasing by 2)
+learning_rate using uniform distribution (0.001 to 0.9)
+
+# Set up space dictionary with specified hyperparameters
+space = {'max_depth': hp.quniform('max_depth', 2, 10, 2),'learning_rate': hp.uniform('learning_rate', 0.001, 0.9)}
+
+# Set up objective function
+def objective(params):
+    params = {'max_depth': int(params['max_depth']),'learning_rate': params['learning_rate']}
+    gbm_clf = GradientBoostingClassifier(n_estimators=100, **params) 
+    best_score = cross_val_score(gbm_clf, X_train, y_train, scoring='accuracy', cv=2, n_jobs=4).mean()
+    loss = 1 - best_score
+    return loss
+
+# Run the algorithm
+best = fmin(fn=objective,space=space, max_evals=20, rstate=np.random.default_rng(42), algo=tpe.suggest)
+print(best)
+=> Output: <script.py> output:
+  0%|          | 0/20 [00:00<?, ?trial/s, best loss=?]
+  5%|5         | 1/20 [00:00<00:04,  4.36trial/s, best loss: 0.2825]
+ 10%|#         | 2/20 [00:00<00:04,  4.33trial/s, best loss: 0.2775000000000001]
+ 15%|#5        | 3/20 [00:00<00:03,  4.30trial/s, best loss: 0.24249999999999994]
+ 20%|##        | 4/20 [00:01<00:04,  3.51trial/s, best loss: 0.24249999999999994]
+ 25%|##5       | 5/20 [00:01<00:04,  3.14trial/s, best loss: 0.24249999999999994]
+ 30%|###       | 6/20 [00:02<00:05,  2.46trial/s, best loss: 0.24249999999999994]
+ 35%|###5      | 7/20 [00:02<00:04,  3.07trial/s, best loss: 0.24249999999999994]
+ 40%|####      | 8/20 [00:02<00:03,  3.79trial/s, best loss: 0.24249999999999994]
+ 45%|####5     | 9/20 [00:02<00:02,  4.03trial/s, best loss: 0.24249999999999994]
+ 50%|#####     | 10/20 [00:02<00:02,  4.12trial/s, best loss: 0.24249999999999994]
+ 55%|#####5    | 11/20 [00:02<00:01,  4.78trial/s, best loss: 0.23249999999999993]
+ 60%|######    | 12/20 [00:03<00:01,  4.86trial/s, best loss: 0.23249999999999993]
+ 65%|######5   | 13/20 [00:03<00:01,  4.60trial/s, best loss: 0.23249999999999993]
+ 70%|#######   | 14/20 [00:03<00:01,  5.22trial/s, best loss: 0.23249999999999993]
+ 75%|#######5  | 15/20 [00:03<00:00,  5.04trial/s, best loss: 0.23249999999999993]
+ 80%|########  | 16/20 [00:03<00:00,  5.49trial/s, best loss: 0.23249999999999993]
+ 85%|########5 | 17/20 [00:03<00:00,  5.61trial/s, best loss: 0.23249999999999993]
+ 90%|######### | 18/20 [00:04<00:00,  5.17trial/s, best loss: 0.23249999999999993]
+ 95%|#########5| 19/20 [00:04<00:00,  4.91trial/s, best loss: 0.23249999999999993]
+100%|##########| 20/20 [00:04<00:00,  4.81trial/s, best loss: 0.23249999999999993]
+100%|##########| 20/20 [00:04<00:00,  4.29trial/s, best loss: 0.23249999999999993]
+    {'learning_rate': 0.038093061276450534, 'max_depth': 2.0}
+
+e) Genetic Hyperparameter Tuning with TPOT
+You're going to undertake a simple example of genetic hyperparameter tuning. TPOT is a very powerful library that has a lot of features. You're just scratching the surface in this lesson, but you are highly encouraged to explore in your own time. This is a very small example. In real life, TPOT is designed to be run for many hours to find the best model. You would have a much larger population and offspring size as well as hundreds more generations to find a good model.
+
+You will create the estimator, fit the estimator to the training data and then score this on the test data.
+For this example we wish to use:
+3 generations
+4 in the population size
+3 offspring in each generation
+accuracy for scoring
+A random_state of 2 has been set for consistency of results.
+
+# Assign the values outlined to the inputs
+number_generations = 3
+population_size = 4
+offspring_size = 3
+scoring_function = 'accuracy'
+
+# Create the tpot classifier
+tpot_clf = TPOTClassifier(generations=number_generations, population_size=population_size, 
+                          offspring_size=offspring_size, scoring=scoring_function,
+                          verbosity=2, random_state=2, cv=2)
+
+# Fit the classifier to the training data
+tpot_clf.fit(X_train, y_train)
+
+# Score on the test set
+print(tpot_clf.score(X_test, y_test))
+=> Output: <script.py> output:
+    
+Optimization Progress:   0%|          | 0/13 [00:00<?, ?pipeline/s]
+Optimization Progress:  23%|##3       | 3/13 [00:00<00:00, 26.32pipeline/s]
+                                                                           
+    Generation 1 - Current best internal CV score: 0.8075000000000001
+    
+Optimization Progress:  54%|#####3    | 7/13 [00:00<00:00, 26.32pipeline/s]
+Optimization Progress:  54%|#####3    | 7/13 [00:00<00:00,  8.82pipeline/s]
+Optimization Progress:  69%|######9   | 9/13 [00:02<00:01,  3.28pipeline/s]
+                                                                           
+    Generation 2 - Current best internal CV score: 0.8075000000000001
+    
+Optimization Progress:  77%|#######6  | 10/13 [00:02<00:00,  3.28pipeline/s]
+Optimization Progress:  77%|#######6  | 10/13 [00:02<00:00,  3.55pipeline/s]
+Optimization Progress: 100%|##########| 13/13 [00:02<00:00,  4.77pipeline/s]
+                                                                            
+    Generation 3 - Current best internal CV score: 0.8075000000000001
+    
+Optimization Progress: 100%|##########| 13/13 [00:02<00:00,  4.77pipeline/s]
+                                                                            
+    Best pipeline: DecisionTreeClassifier(input_matrix, criterion=gini, max_depth=1, min_samples_leaf=10, min_samples_split=9)
+    0.77
+You can see in the output the score produced by the chosen model (in this case a version of Naive Bayes) over each generation, and then the final accuracy score with the hyperparameters chosen for the final model. This is a great first example of using TPOT for automated hyperparameter tuning. You can now extend on this on your own and build great machine learning models!
+
+f) Analysing TPOT's stability
+# Create the tpot classifier 
+tpot_clf = TPOTClassifier(generations=2, population_size=4, offspring_size=3, scoring='accuracy', cv=2,
+                          verbosity=2, random_state=42)
+
+# Fit the classifier to the training data
+tpot_clf.fit(X_train, y_train)
+
+# Score on the test set
+print(tpot_clf.score(X_test, y_test))
+=> Output: <script.py> output:
+    
+Optimization Progress:   0%|          | 0/10 [00:00<?, ?pipeline/s]
+Optimization Progress:  20%|##        | 2/10 [00:00<00:01,  7.06pipeline/s]
+Optimization Progress:  30%|###       | 3/10 [00:00<00:01,  5.43pipeline/s]
+Optimization Progress:  40%|####      | 4/10 [00:00<00:00,  6.26pipeline/s]
+Optimization Progress:  50%|#####     | 5/10 [00:00<00:00,  5.28pipeline/s]
+                                                                           
+    Generation 1 - Current best internal CV score: 0.7775000000000001
+    
+Optimization Progress:  70%|#######   | 7/10 [00:00<00:00,  5.28pipeline/s]
+Optimization Progress:  70%|#######   | 7/10 [00:01<00:00,  6.41pipeline/s]
+Optimization Progress:  90%|######### | 9/10 [00:01<00:00,  6.81pipeline/s]
+                                                                           
+    Generation 2 - Current best internal CV score: 0.7775000000000001
+    
+Optimization Progress: 100%|##########| 10/10 [00:01<00:00,  6.81pipeline/s]
+                                                                            
+    Best pipeline: RandomForestClassifier(input_matrix, bootstrap=True, criterion=gini, max_features=0.2, min_samples_leaf=8, min_samples_split=4, n_estimators=100)
+    0.73
+
+*** Note: Now try using a random_state of 122. The numbers don't mean anything special, but should produce different results.
+# Create the tpot classifier 
+tpot_clf = TPOTClassifier(generations=2, population_size=4, offspring_size=3, scoring='accuracy', cv=2,
+                          verbosity=2, random_state=122)
+
+# Fit the classifier to the training data
+tpot_clf.fit(X_train, y_train)
+
+# Score on the test set
+print(tpot_clf.score(X_test, y_test))
+=> Output: <script.py> output:
+    
+Optimization Progress:   0%|          | 0/10 [00:00<?, ?pipeline/s]
+Optimization Progress:  40%|####      | 4/10 [00:00<00:00, 37.44pipeline/s]
+                                                                           
+    Generation 1 - Current best internal CV score: 0.7825
+    
+Optimization Progress:  70%|#######   | 7/10 [00:00<00:00, 37.44pipeline/s]
+Optimization Progress:  80%|########  | 8/10 [00:00<00:00,  8.34pipeline/s]
+Optimization Progress: 100%|##########| 10/10 [00:01<00:00,  8.23pipeline/s]
+                                                                            
+    Generation 2 - Current best internal CV score: 0.7825
+    
+Optimization Progress: 100%|##########| 10/10 [00:01<00:00,  8.23pipeline/s]
+                                                                            
+    Best pipeline: BernoulliNB(input_matrix, alpha=0.01, fit_prior=True)
+    0.76
+
+*** Finally try using the random_state of 99. See how there is a different result again?
+# Create the tpot classifier 
+tpot_clf = TPOTClassifier(generations=2, population_size=4, offspring_size=3, scoring='accuracy', cv=2,
+                          verbosity=2, random_state=99)
+
+# Fit the classifier to the training data
+tpot_clf.fit(X_train, y_train)
+
+# Score on the test set
+print(tpot_clf.score(X_test, y_test))
+=> Output: <script.py> output:
+    
+Optimization Progress:   0%|          | 0/10 [00:00<?, ?pipeline/s]
+Optimization Progress:  40%|####      | 4/10 [00:00<00:00,  6.64pipeline/s]
+Optimization Progress:  50%|#####     | 5/10 [00:00<00:01,  4.81pipeline/s]
+Optimization Progress:  60%|######    | 6/10 [00:01<00:01,  3.22pipeline/s]
+                                                                           
+    Generation 1 - Current best internal CV score: 0.7825
+    
+Optimization Progress:  70%|#######   | 7/10 [00:01<00:00,  3.22pipeline/s]
+Optimization Progress:  70%|#######   | 7/10 [00:01<00:00,  3.29pipeline/s]
+Optimization Progress:  80%|########  | 8/10 [00:02<00:00,  2.70pipeline/s]
+Optimization Progress: 100%|##########| 10/10 [00:02<00:00,  3.74pipeline/s]
+                                                                            
+    Generation 2 - Current best internal CV score: 0.7825
+    
+Optimization Progress: 100%|##########| 10/10 [00:02<00:00,  3.74pipeline/s]
+                                                                            
+    Best pipeline: BernoulliNB(input_matrix, alpha=0.001, fit_prior=True)
+    0.76
+
+CONCLUSION: You can see that TPOT is quite unstable when only running with low generations, population size and offspring. The first model chosen was a Decision Tree, then a K-nearest Neighbor model and finally a Random Forest. Increasing the generations, population size and offspring and running this for a long time will assist to produce better models and more stable results. Don't hesitate to try it yourself on your own machine!
