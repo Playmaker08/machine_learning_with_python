@@ -207,7 +207,7 @@ print(bow.most_common(10))
     [('debugging', 40), ('system', 25), ('bug', 17), ('software', 16), ('problem', 15), ('tool', 15), ('computer', 14), ('process', 13), ('term', 13), ('debugger', 13)]
 
 c) Creating and querying a corpus with gensim
-You'll use these data structures to investigate word trends and potential interesting topics in your document set. To get started, we have imported a few additional messy articles from Wikipedia, which were preprocessed by lowercasing all words, tokenizing them, and removing stop words and punctuation. These were then stored in a list of document tokens called articles. You'll need to do some light preprocessing and then generate the gensim dictionary and corpus. Each corpus item document a series of tuples (1st representing tokenid from dictionary and 2nd representing token frequency in the document
+You'll use these data structures to investigate word trends and potential interesting topics in your document set. To get started, we have imported a few additional messy articles from Wikipedia, which were preprocessed by lowercasing all words, tokenizing them, and removing stop words and punctuation. These were then stored in a list of document tokens called articles. You'll need to do some light preprocessing and then generate the gensim dictionary and corpus. Each corpus item document a series of tuples (1st representing tokenid from dictionary and 2nd representing token frequency in the document)
 # Import Dictionary
 from gensim.corpora.dictionary import Dictionary
 
@@ -271,4 +271,418 @@ for word_id, word_count in sorted_word_count[:5]:
     software 450
     cite 322
 
-e)
+Tf-idf (term frequency - inverse document frequency): determine most important words in each document
+
+e) What is tf-idf?
+You want to calculate the tf-idf weight for the word "computer", which appears five times in a document containing 100 words. Given a corpus containing 200 documents, with 20 documents mentioning the word "computer", tf-idf can be calculated by multiplying term frequency with inverse document frequency.
+
+Term frequency = percentage share of the word compared to all tokens in the document Inverse document frequency = logarithm of the total number of documents in a corpora divided by the number of documents containing the term
+
+Solution: (5 / 100) * log(200 / 20)
+
+f) Tf-idf with Wikipedia
+Now it's your turn to determine new significant terms for your corpus by applying gensim's tf-idf. You will again have access to the same corpus and dictionary objects you created in the previous exercises - dictionary, corpus, and doc. Will tf-idf make for more interesting results on the document level? TfidfModel has been imported for you from gensim.models.tfidfmodel.
+
+# Create a new TfidfModel using the corpus: tfidf
+tfidf = TfidfModel(corpus)
+
+# Calculate the tfidf weights of doc: tfidf_weights
+tfidf_weights = tfidf[doc]
+
+# Print the first five weights
+print(tfidf_weights[:5])
+
+# Sort the weights from highest to lowest: sorted_tfidf_weights
+sorted_tfidf_weights = sorted(tfidf_weights, key=lambda w: w[1], reverse=True)
+
+# Print the top 5 weighted words
+for term_id, weight in sorted_tfidf_weights[:5]:
+    print(dictionary.get(term_id), weight)
+=> Output: <script.py> output:
+    [(10, 0.0022676967632877364), (25, 0.004310646654948723), (27, 0.008621293309897447), (42, 0.0054444950365925915), (43, 0.004310646654948723)]
+    reverse 0.4987515710425556
+    infringement 0.1854420793422032
+    engineering 0.16280628072296138
+    interoperability 0.12362805289480211
+    reverse-engineered 0.12362805289480211
+
+
+## CHAPTER 3: NAMED-ENTITY RECOGNITION
+
+NLP task to identify important named entities in the text: People, places, organizations; Dates, states, works of arts, and other categories
+Polyglot: NLP library uses word vectors (vectors for many different languages)
+
+a) NER with NLTK
+# Tokenize the article into sentences: sentences
+sentences = nltk.sent_tokenize(article)
+
+# Tokenize each sentence into words: token_sentences
+token_sentences = [nltk.word_tokenize(sent) for sent in sentences]
+
+# Tag each tokenized sentence into parts of speech: pos_sentences
+pos_sentences = [nltk.pos_tag(sent) for sent in token_sentences] 
+
+# Create the named entity chunks: chunked_sentences
+chunked_sentences = nltk.ne_chunk_sents(pos_sentences, binary=True)
+
+# Test for stems of the tree with 'NE' tags
+for sent in chunked_sentences:
+    for chunk in sent:
+        if hasattr(chunk, "label") and chunk.label() == "NE":
+            print(chunk)
+=> Output: <script.py> output:
+    (NE Uber/NNP)
+    (NE Beyond/NN)
+    (NE Apple/NNP)
+    (NE Uber/NNP)
+    (NE Uber/NNP)
+    (NE Travis/NNP Kalanick/NNP)
+    (NE Tim/NNP Cook/NNP)
+    (NE Apple/NNP)
+    (NE Silicon/NNP Valley/NNP)
+    (NE CEO/NNP)
+    (NE Yahoo/NNP)
+    (NE Marissa/NNP Mayer/NNP)
+
+b) Charting practice
+In this exercise, you'll use some extracted named entities and their groupings from a series of newspaper articles to chart the diversity of named entity types in the articles.
+
+You'll use a defaultdict called ner_categories, with keys representing every named entity group type, and values to count the number of each different named entity type. You have a chunked sentence list called chunked_sentences similar to the last exercise, but this time with non-binary category names.
+You can use hasattr() to determine if each chunk has a 'label' and then simply use the chunk's .label() method as the dictionary key.
+
+# Create the defaultdict: ner_categories
+ner_categories = defaultdict(int)
+
+# Create the nested for loop
+for sent in chunked_sentences:
+    for chunk in sent:
+        if hasattr(chunk, 'label'):
+            ner_categories[chunk.label()] += 1
+            
+# Create a list from the dictionary keys for the chart labels: labels
+labels = list(ner_categories.keys())
+
+# Create a list of the values: values
+values = [ner_categories.get(v) for v in labels]
+
+# Create the pie chart
+plt.pie(values, labels=labels, autopct='%1.1f%%', startangle=140)
+
+# Display the chart
+plt.show()
+
+c) Comparing NLTK with spaCy NER
+# Import spacy
+import spacy
+
+# Instantiate the English model: nlp
+nlp = spacy.load('en_core_web_sm', disable=['tagger', 'parser', 'matcher'])
+
+# Create a new document: doc
+doc = nlp(article)
+
+# Print all of the found entities and their labels
+for ent in doc.ents:
+    print(ent.label_, ent.text)
+=> Output: <script.py> output:
+    ORG Apple
+    PERSON Travis Kalanick of Uber
+    PERSON Tim Cook
+    ORG Apple
+    CARDINAL Millions
+    LOC Silicon Valley
+    ORG Yahoo
+    PERSON Marissa Mayer
+    MONEY 186
+Note: Which are the extra categories that spacy uses compared to nltk in its named-entity recognition? NORP, CARDINAL, MONEY, WORKOFART, LANGUAGE, EVENT
+
+d) French NER with polyglot I
+In this exercise and the next, you'll use the polyglot library to identify French entities. The library functions slightly differently than spacy, so you'll use a few of the new things you learned in the last video to display the named entity text and category. You have access to the full article string in article. Additionally, the Text class of polyglot has been imported from polyglot.text.
+
+# Create a new text object using Polyglot's Text class: txt
+txt = Text(article)
+
+# Print each of the entities found
+for ent in txt.entities:
+    print(ent)
+    
+# Print the type of ent
+print(type(ent))
+
+# Create the list of tuples: entities
+entities = [(ent.tag, ' '.join(ent)) for ent in txt.entities]
+
+# Print entities
+print(entities)
+
+
+=> Output: <script.py> output:
+    ['Charles', 'Cuvelliez']
+    ['Charles', 'Cuvelliez']
+    ['Bruxelles']
+    ['l’IA']
+    ['Julien', 'Maldonato']
+    ['Deloitte']
+    ['Ethiquement']
+    ['l’IA']
+    ['.']
+    <class 'polyglot.text.Chunk'>
+
+    [('I-PER', 'Charles Cuvelliez'), ('I-PER', 'Charles Cuvelliez'), ('I-ORG', 'Bruxelles'), ('I-PER', 'l’IA'), ('I-PER', 'Julien Maldonato'), ('I-ORG', 'Deloitte'), ('I-PER', 'Ethiquement'), ('I-LOC', 'l’IA'), ('I-PER', '.')]
+
+e) Spanish NER with polyglot
+You'll continue your exploration of polyglot now with some Spanish annotation. This article is not written by a newspaper, so it is your first example of a more blog-like text. How do you think that might compare when finding entities?
+
+The Text object has been created as txt, and each entity has been printed, as you can see in the IPython Shell. Your specific task is to determine how many of the entities contain the words "Márquez" or "Gabo" - these refer to the same person in different ways!
+
+# Initialize the count variable: count
+count = 0
+
+# Iterate over all the entities
+for ent in txt.entities:
+    # Check whether the entity contains 'Márquez' or 'Gabo'
+    if "Márquez" in ent or "Gabo" in ent:
+        # Increment count
+        count += 1
+
+# Print count
+print(count)
+
+# Calculate the percentage of entities that refer to "Gabo": percentage
+percentage = count / len(txt.entities)
+print(percentage)
+=> Output: <script.py> output:
+    29
+    0.29591836734693877
+
+
+## CHAPTER 4: BUILDING A "FAKE NEWS" CLASSIFIER
+
+Supervised learning steps:
+1. Collect and preprocess our data
+2. Determine a label (eg. Movie genre)
+3. Split data into training and test sets
+4. Extract features from the text to help predict the label (bag-of-words vector)
+5. Evaluate trained model using the test set
+
+a) CountVectorizer for text classification
+# Import the necessary modules
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+
+# Print the head of df
+print(df.head())
+
+# Create a series to store the labels: y
+y = df.label
+
+# Create training and test sets
+X_train, X_test, y_train, y_test = train_test_split(df['text'], y, test_size=0.33, random_state=53)
+
+# Initialize a CountVectorizer object: count_vectorizer
+count_vectorizer = CountVectorizer(stop_words='english')
+
+# Transform the training data using only the 'text' column values: count_train 
+count_train = count_vectorizer.fit_transform(X_train)
+
+# Transform the test data using only the 'text' column values: count_test 
+count_test = count_vectorizer.transform(X_test)
+
+# Print the first 10 features of the count_vectorizer
+print(count_vectorizer.get_feature_names()[:10])
+=> Output: <script.py> output:
+       Unnamed: 0                                              title                                               text label
+    0        8476                       You Can Smell Hillary’s Fear  Daniel Greenfield, a Shillman Journalism Fello...  FAKE
+    1       10294  Watch The Exact Moment Paul Ryan Committed Pol...  Google Pinterest Digg Linkedin Reddit Stumbleu...  FAKE
+    2        3608        Kerry to go to Paris in gesture of sympathy  U.S. Secretary of State John F. Kerry said Mon...  REAL
+    3       10142  Bernie supporters on Twitter erupt in anger ag...  — Kaydee King (@KaydeeKing) November 9, 2016 T...  FAKE
+    4         875   The Battle of New York: Why This Primary Matters  It's primary day in New York and front-runners...  REAL
+    ['00', '000', '0000', '00000031', '000035', '00006', '0001', '0001pt', '000ft', '000km']
+
+b) TfidfVectorizer for text classification
+Similar to the sparse CountVectorizer created in the previous exercise, you'll work on creating tf-idf vectors for your documents. You'll set up a TfidfVectorizer and investigate some of its features. In this exercise, you'll use pandas and sklearn along with the same X_train, y_train and X_test, y_test DataFrames and Series you created in the last exercise.
+
+# Import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Initialize a TfidfVectorizer object: tfidf_vectorizer
+tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_df=0.7)
+
+# Transform the training data: tfidf_train 
+tfidf_train = tfidf_vectorizer.fit_transform(X_train)
+
+# Transform the test data: tfidf_test 
+tfidf_test = tfidf_vectorizer.transform(X_test)
+
+# Print the first 10 features
+print(tfidf_vectorizer.get_feature_names()[:10])
+
+# Print the first 5 vectors of the tfidf training data
+print(tfidf_train.A[:5])
+=> Output: <script.py> output:
+    ['00', '000', '001', '008s', '00am', '00pm', '01', '01am', '02', '024']
+    [[0.         0.01928563 0.         ... 0.         0.         0.        ]
+     [0.         0.         0.         ... 0.         0.         0.        ]
+     [0.         0.02895055 0.         ... 0.         0.         0.        ]
+     [0.         0.03056734 0.         ... 0.         0.         0.        ]
+     [0.         0.         0.         ... 0.         0.         0.        ]]
+
+c) Inspecting the vectors
+# Create the CountVectorizer DataFrame: count_df
+count_df = pd.DataFrame(count_train.A, columns=count_vectorizer.get_feature_names())
+
+# Create the TfidfVectorizer DataFrame: tfidf_df
+tfidf_df = pd.DataFrame(tfidf_train.A, columns=tfidf_vectorizer.get_feature_names())
+
+# Print the head of count_df
+print(count_df.head())
+
+# Print the head of tfidf_df
+print(tfidf_df.head())
+
+# Calculate the difference in columns: difference
+difference = set(count_df.columns) - set(tfidf_df.columns)
+print(difference)
+
+# Check whether the DataFrames are equal
+print(count_df.equals(tfidf_df))
+=> Output: <script.py> output:
+       000  00am  0600  10  100  ...  yuan  zawahiri  zeitung  zero  zerohedge
+    0    0     0     0   0    0  ...     0         0        0     1          0
+    1    0     0     0   3    0  ...     0         0        0     0          0
+    2    0     0     0   0    0  ...     0         0        0     0          0
+    3    0     0     0   0    0  ...     0         0        0     0          0
+    4    0     0     0   0    0  ...     0         0        0     0          0
+    
+    [5 rows x 5111 columns]
+       000  00am  0600     10  100  ...  yuan  zawahiri  zeitung   zero  zerohedge
+    0  0.0   0.0   0.0  0.000  0.0  ...   0.0       0.0      0.0  0.034        0.0
+    1  0.0   0.0   0.0  0.106  0.0  ...   0.0       0.0      0.0  0.000        0.0
+    2  0.0   0.0   0.0  0.000  0.0  ...   0.0       0.0      0.0  0.000        0.0
+    3  0.0   0.0   0.0  0.000  0.0  ...   0.0       0.0      0.0  0.000        0.0
+    4  0.0   0.0   0.0  0.000  0.0  ...   0.0       0.0      0.0  0.000        0.0
+    
+    [5 rows x 5111 columns]
+    set()
+    False
+
+d) Training and testing the "fake news" model with CountVectorizer
+# Import the necessary modules
+from sklearn.naive_bayes import MultinomialNB
+from sklearn import metrics
+
+# Instantiate a Multinomial Naive Bayes classifier: nb_classifier
+nb_classifier = MultinomialNB()
+
+# Fit the classifier to the training data
+nb_classifier.fit(count_train, y_train)
+
+# Create the predicted tags: pred
+pred = nb_classifier.predict(count_test)
+
+# Calculate the accuracy score: score
+score = metrics.accuracy_score(y_test, pred)
+print(score)
+
+# Calculate the confusion matrix: cm
+cm = metrics.confusion_matrix(y_test, pred, labels=['FAKE', 'REAL'])
+print(cm)
+=> Output: <script.py> output:
+    0.893352462936394
+    [[ 865  143]
+     [  80 1003]]
+
+e) Training and testing the "fake news" model with TfidfVectorizer
+# Create a Multinomial Naive Bayes classifier: nb_classifier
+nb_classifier = MultinomialNB()
+
+# Fit the classifier to the training data
+nb_classifier.fit(tfidf_train, y_train)
+
+# Create the predicted tags: pred
+pred = nb_classifier.predict(tfidf_test)
+
+# Calculate the accuracy score: score
+score = metrics.accuracy_score(y_test, pred)
+print(score)
+
+# Calculate the confusion matrix: cm
+cm = metrics.confusion_matrix(y_test, pred, labels=['FAKE', 'REAL'])
+print(cm)
+=> Output: <script.py> output:
+    0.8565279770444764
+    [[ 739  269]
+     [  31 1052]]
+
+f) Improving your model
+Your job in this exercise is to test a few different alpha levels using the Tfidf vectors to determine if there is a better performing combination. The training and test sets have been created, and tfidf_vectorizer, tfidf_train, and tfidf_test have been computed.
+
+# Create the list of alphas: alphas
+alphas = np.arange(0, 1, .1)
+
+# Define train_and_predict()
+def train_and_predict(alpha):
+    # Instantiate the classifier: nb_classifier
+    nb_classifier = MultinomialNB(alpha=alpha)
+    # Fit to the training data
+    nb_classifier.fit(tfidf_train, y_train)
+    # Predict the labels: pred
+    pred = nb_classifier.predict(tfidf_test)
+    # Compute accuracy: score
+    score = metrics.accuracy_score(y_test, pred)
+    return score
+
+# Iterate over the alphas and print the corresponding score
+for alpha in alphas:
+    print('Alpha: ', alpha)
+    print('Score: ', train_and_predict(alpha))
+    print()
+=> Output: <script.py> output:
+    Alpha:  0.0
+    Score:  0.8813964610234337
+    
+    Alpha:  0.1
+    Score:  0.8976566236250598
+    
+    Alpha:  0.2
+    Score:  0.8938307030129125
+    
+    Alpha:  0.30000000000000004
+    Score:  0.8900047824007652
+    
+    Alpha:  0.4
+    Score:  0.8857006217120995
+    
+    Alpha:  0.5
+    Score:  0.8842659014825442
+    
+    Alpha:  0.6000000000000001
+    Score:  0.874701099952176
+    
+    Alpha:  0.7000000000000001
+    Score:  0.8703969392635102
+    
+    Alpha:  0.8
+    Score:  0.8660927785748446
+    
+    Alpha:  0.9
+    Score:  0.8589191774270684
+
+g) Inspecting your model
+# Get the class labels: class_labels
+class_labels = nb_classifier.classes_
+
+# Extract the features: feature_names
+feature_names = tfidf_vectorizer.get_feature_names()
+
+# Zip the feature names together with the coefficient array and sort by weights: feat_with_weights
+feat_with_weights = sorted(zip(nb_classifier.coef_[0], feature_names))
+
+# Print the first class label and the top 20 feat_with_weights entries
+print(class_labels[0], feat_with_weights[:20])
+
+# Print the second class label and the bottom 20 feat_with_weights entries
+print(class_labels[1], feat_with_weights[-20:])
+=> Output: <script.py> output:
+    FAKE [(-12.641778440826338, '0000'), (-12.641778440826338, '000035'), (-12.641778440826338, '0001'), (-12.641778440826338, '0001pt'), (-12.641778440826338, '000km'), (-12.641778440826338, '0011'), (-12.641778440826338, '006s'), (-12.641778440826338, '007'), (-12.641778440826338, '007s'), (-12.641778440826338, '008s'), (-12.641778440826338, '0099'), (-12.641778440826338, '00am'), (-12.641778440826338, '00p'), (-12.641778440826338, '00pm'), (-12.641778440826338, '014'), (-12.641778440826338, '015'), (-12.641778440826338, '018'), (-12.641778440826338, '01am'), (-12.641778440826338, '020'), (-12.641778440826338, '023')]
+    REAL [(-6.790929954967984, 'states'), (-6.765360557845787, 'rubio'), (-6.751044290367751, 'voters'), (-6.701050756752027, 'house'), (-6.695547793099875, 'republicans'), (-6.670191249042969, 'bush'), (-6.661945235816139, 'percent'), (-6.589623788689861, 'people'), (-6.559670340096453, 'new'), (-6.489892292073902, 'party'), (-6.452319082422527, 'cruz'), (-6.452076515575875, 'state'), (-6.397696648238072, 'republican'), (-6.376343060363355, 'campaign'), (-6.324397735392007, 'president'), (-6.2546017970213645, 'sanders'), (-6.144621899738043, 'obama'), (-5.756817248152807, 'clinton'), (-5.596085785733112, 'said'), (-5.357523914504495, 'trump')]
