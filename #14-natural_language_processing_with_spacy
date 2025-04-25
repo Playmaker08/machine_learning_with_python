@@ -1,1 +1,679 @@
+## CHAPTER 1: INTRO TO NLP AND SPACY
 
+import spacy
+nlp = spacy.load("en_core_web_sm")
+doc = nlp("Enter text here")
+
+a) Doc container in spaCy
+# Load en_core_web_sm and create an nlp object
+nlp = spacy.load("en_core_web_sm")
+
+# Create a Doc container for the text object
+doc = nlp(text)
+
+# Create a list containing the text of each token in the Doc container
+print([token.text for token in doc])
+
+b) Tokenization with spaCy
+# Create a Doc container of the given text
+document = nlp(text)
+    
+# Store and review the token text values of tokens for the Doc container
+first_text_tokens = [token.text for token in document]
+print("First text tokens:\n", first_text_tokens, "\n")
+=> Output: <script.py> output:
+    First text tokens:
+     ['I', 'have', 'bought', 'several', 'of', 'the', 'Vitality', 'canned', 'dog', 'food', 'products', 'and', 'have', 'found', 'them', 'all', 'to', 'be', 'of', 'good', 'quality', '.', 'The', 'product', 'looks', 'more', 'like', 'a', 'stew', 'than', 'a', 'processed', 'meat', 'and', 'it', 'smells', 'better', '.', 'My', 'Labrador', 'is', 'finicky', 'and', 'she', 'appreciates', 'this', 'product', 'better', 'than', ' ', 'most', '.'] 
+
+c) Running a spaCy pipeline
+# Load en_core_web_sm model as nlp
+nlp = spacy.load("en_core_web_sm")
+
+# Run an nlp model on each item of texts and append the Doc container to documents
+documents = []
+for text in texts:
+  documents.append(nlp(text))
+  
+# Print the token texts for each Doc container
+for doc in documents:
+  print([token.text for token in doc])
+
+d) Lemmatization with spaCy
+document = nlp(text)
+tokens = [token.text for token in document]
+
+# Append the lemma for all tokens in the document
+lemmas = [token.lemma_ for token in document]
+print("Lemmas:\n", lemmas, "\n")
+
+# Print tokens and compare with lemmas list
+print("Tokens:\n", tokens)
+=> Output: <script.py> output:
+    Lemmas:
+     ['I', 'have', 'buy', 'several', 'of', 'the', 'vitality', 'can', 'dog', 'food', 'product', 'and', 'have', 'find', 'they', 'all', 'to', 'be', 'of', 'good', 'quality', '.', 'the', 'product', 'look', 'more', 'like', 'a', 'stew', 'than', 'a', 'process', 'meat', 'and', 'it', 'smell', 'well', '.', 'my', 'Labrador', 'be', 'finicky', 'and', 'she', 'appreciate', 'this', 'product', 'well', 'than', ' ', 'most', '.'] 
+    
+    Tokens:
+     ['I', 'have', 'bought', 'several', 'of', 'the', 'Vitality', 'canned', 'dog', 'food', 'products', 'and', 'have', 'found', 'them', 'all', 'to', 'be', 'of', 'good', 'quality', '.', 'The', 'product', 'looks', 'more', 'like', 'a', 'stew', 'than', 'a', 'processed', 'meat', 'and', 'it', 'smells', 'better', '.', 'My', 'Labrador', 'is', 'finicky', 'and', 'she', 'appreciates', 'this', 'product', 'better', 'than', ' ', 'most', '.']
+
+e) Sentence segmentation with spaCy
+# Generating a documents list of all Doc containers
+documents = [nlp(text) for text in texts]
+
+# Iterate through documents and append sentences in each doc to the sentences list
+sentences = []
+for doc in documents:
+  sentences.append([s for s in doc.sents])
+  
+# Find number of sentences per each doc container
+print([len(s) for s in sentences])
+=> Output: <script.py> output:
+    [3, 3, 8, 3, 4, 5, 5, 5, 3, 4]
+
+f) POS tagging with spaCy
+In this exercise, you will practice POS tagging. POS tagging is a useful tool in NLP as it allows algorithms to understand the grammatical structure of a sentence and to confirm words that have multiple meanings such as watch and play.
+
+# Compile a list of all Doc containers of texts
+documents = [nlp(text) for text in texts]
+
+# Print token texts and POS tags for each Doc container
+for doc in documents:
+    for token in doc:
+        print("Text: ", token.text, "| POS tag: ", token.pos_)
+    print("\n")
+=> Output: <script.py> output:
+    Text:  What | POS tag:  PRON
+    Text:  is | POS tag:  AUX
+    Text:  the | POS tag:  DET
+    Text:  arrival | POS tag:  NOUN
+    Text:  time | POS tag:  NOUN
+    Text:  in | POS tag:  ADP
+    Text:  San | POS tag:  PROPN
+    Text:  francisco | POS tag:  PROPN
+    Text:  for | POS tag:  ADP
+    Text:  the | POS tag:  DET
+    Text:  7:55 | POS tag:  NUM
+    Text:  AM | POS tag:  NOUN
+    Text:  flight | POS tag:  NOUN
+    Text:  leaving | POS tag:  VERB
+    Text:  Washington | POS tag:  PROPN
+    Text:  ? | POS tag:  PUNCT
+    
+
+g) NER with spaCy
+Named entity recognition (NER) helps you to easily identify key elements of a given document, like names of people and places. It helps sort unstructured data and detect important information, which is crucial if you are dealing with large datasets.
+
+# Compile a list of all Doc containers of texts
+documents = [nlp(text) for text in texts]
+
+# Print the entity text and label for the entities in each document
+for doc in documents:
+    print([(ent.text, ent.label_) for ent in doc.ents])
+    
+# Print the 6th token's text and entity type of the second document
+print("\nText:", documents[1][5].text, "| Entity type: ", documents[1][5].ent_type_)
+=> Output: <script.py> output:
+    [('Boston', 'GPE'), ('8:38 am', 'TIME'), ('Denver', 'GPE'), ('11:10 in the morning', 'TIME')]
+    [('Pittsburgh', 'GPE'), ('Baltimore', 'GPE'), ('Thursday', 'DATE'), ('morning', 'TIME')]
+    [('San francisco', 'GPE'), ('Washington', 'GPE')]
+    
+    Text: Pittsburgh | Entity type:  GPE
+
+h) Text processing with spaCy
+# Create a list to store sentences of each Doc container in documents
+sentences = [[sent for sent in doc.sents] for doc in documents]
+
+# Create a list to track number of sentences per Doc container in documents
+num_sentences = [len([sent for sent in doc.sents]) for doc in documents]
+print("Number of sentences in documents:\n", num_sentences, "\n")
+
+# Record entities text and corresponding label of the third Doc container
+third_text_entities = [(ent.text, ent.label_) for ent in documents[2].ents]
+print("Third text entities:\n", third_text_entities, "\n")
+
+# Record first ten tokens and corresponding POS tag for the third Doc container
+third_text_10_pos = [(token.text, token.pos_) for token in documents[2]][:10]
+print("First ten tokens of third text:\n", third_text_10_pos)
+=> Output: <script.py> output:
+    Number of sentences in documents:
+     [3, 3, 8, 3, 4] 
+    
+    Third text entities:
+     [('around a few centuries', 'DATE'), ('gelatin', 'ORG'), ("C.S. Lewis'", 'ORG'), ('The Lion, The Witch', 'WORK_OF_ART'), ('Edmund', 'WORK_OF_ART'), ('Witch', 'ORG')] 
+    
+    First ten tokens of third text:
+     [('This', 'DET'), ('is', 'AUX'), ('a', 'DET'), ('confection', 'NOUN'), ('that', 'DET'), ('has', 'AUX'), ('been', 'VERB'), ('around', 'ADV'), ('a', 'DET'), ('few', 'ADJ')]
+
+
+## CHAPTER 2: SPACY LINGUISTIC ANNOTATIONS AND WORD VECTORS
+
+a) Word-sense disambiguation with spaCy
+WSD is a classical problem of deciding in which sense a word is used in a sentence. Determining the sense of the word can be crucial in search engines, machine translation, and question-answering systems.
+
+texts = ["This device is used to jam the signal.",
+         "I am stuck in a traffic jam"]
+
+# Create a list of Doc containers in the texts list
+documents = [nlp(t) for t in texts]
+
+# Print a token's text and POS tag if the word jam is in the token's text
+for i, doc in enumerate(documents):
+    print(f"Sentence {i+1}: ", [(token.text, token.pos_) for token in doc if "jam" in token.text], "\n")
+=> Output: <script.py> output:
+    Sentence 1:  [('jam', 'VERB')] 
+    
+    Sentence 2:  [('jam', 'NOUN')]   
+
+b) Dependency parsing with spaCy
+Dependency parsing analyzes the grammatical structure in a sentence and finds out related words as well as the type of relationship between them. An application of dependency parsing is to identify a sentence object and subject. In this exercise, you will practice extracting dependency labels for given texts.
+
+# Create a list of Doc containts of texts list
+documents = [nlp(t) for t in texts]
+
+# Print each token's text, dependency label and its explanation
+for doc in documents:
+    print([(token.text, token.dep_, spacy.explain(token.dep_)) for token in doc], "\n")
+=> Output: <script.py> output:
+    [('I', 'nsubj', 'nominal subject'), ('want', 'ROOT', None), ('to', 'aux', 'auxiliary'), ('fly', 'xcomp', 'open clausal complement'), ('from', 'prep', 'prepositional modifier'), ('Boston', 'pobj', 'object of preposition'), ('at', 'prep', 'prepositional modifier'), ('8:38', 'nummod', 'numeric modifier'), ('am', 'pobj', 'object of preposition'), ('and', 'cc', 'coordinating conjunction'), ('arrive', 'conj', 'conjunct'), ('in', 'prep', 'prepositional modifier'), ('Denver', 'pobj', 'object of preposition'), ('at', 'prep', 'prepositional modifier'), ('11:10', 'pobj', 'object of preposition'), ('in', 'prep', 'prepositional modifier'), ('the', 'det', 'determiner'), ('morning', 'pobj', 'object of preposition')] 
+    
+    [('What', 'det', 'determiner'), ('flights', 'nsubj', 'nominal subject'), ('are', 'ROOT', None), ('available', 'acomp', 'adjectival complement'), ('from', 'prep', 'prepositional modifier'), ('Pittsburgh', 'pobj', 'object of preposition'), ('to', 'prep', 'prepositional modifier'), ('Baltimore', 'pobj', 'object of preposition'), ('on', 'prep', 'prepositional modifier'), ('Thursday', 'compound', 'compound'), ('morning', 'pobj', 'object of preposition'), ('?', 'punct', 'punctuation')] 
+    
+    [('What', 'attr', 'attribute'), ('is', 'ROOT', None), ('the', 'det', 'determiner'), ('arrival', 'compound', 'compound'), ('time', 'nsubj', 'nominal subject'), ('in', 'prep', 'prepositional modifier'), ('San', 'compound', 'compound'), ('francisco', 'pobj', 'object of preposition'), ('for', 'prep', 'prepositional modifier'), ('the', 'det', 'determiner'), ('7:55', 'nummod', 'numeric modifier'), ('AM', 'compound', 'compound'), ('flight', 'pobj', 'object of preposition'), ('leaving', 'acl', 'clausal modifier of noun (adjectival clause)'), ('Washington', 'dobj', 'direct object'), ('?', 'punct', 'punctuation')] 
+
+c) spaCy vocabulary
+Word vectors, or word embeddings, are numerical representations of words that allow computers to perform complex tasks using text data. Word vectors are a part of many spaCy models, however, a few of the models do not have word vectors.
+
+# Load the en_core_web_md model
+md_nlp = spacy.load("en_core_web_md")
+
+# Print the number of words in the model's vocabulary
+print("Number of words: ", md_nlp.meta["vectors"]["vectors"], "\n")
+
+# Print the dimensions of word vectors in en_core_web_md model
+print("Dimension of word vectors: ", md_nlp.meta["vectors"]["width"])
+
+d) Word vectors in spaCy vocabulary
+words = ["like", "love"]
+
+# IDs of all the given words
+ids = [nlp.vocab.strings[w] for w in words]
+
+# Store the first ten elements of the word vectors for each word
+word_vectors = [nlp.vocab.vectors[i][:10] for i in ids]
+
+# Print the first ten elements of the first word vector
+print(word_vectors[0])
+
+e) Word vectors in spaCy vocabulary
+The purpose of word vectors is to allow a computer to understand words. In this exercise, you will practice extracting word vectors for a given list of words. A list of words is compiled as words. The en_core_web_md model is already imported and available as nlp.
+
+words = ["like", "love"]
+
+# IDs of all the given words
+ids = [nlp.vocab.strings[w] for w in words]
+
+# Store the first ten elements of the word vectors for each word
+word_vectors = [nlp.vocab.vectors[i][:10] for i in ids]
+
+# Print the first ten elements of the first word vector
+print(word_vectors[0])
+=> Output: <script.py> output:
+    [-0.18417   0.055115 -0.36953  -0.20895   0.25672   0.30142   0.16299
+     -0.16437  -0.070268  2.1638  ]
+
+f) Word vectors projection
+You can visualize word vectors in a scatter plot to help you understand how the vocabulary words are grouped. In order to visualize word vectors, you need to project them into a two-dimensional space. You can project vectors by extracting the two principal components via Principal Component Analysis (PCA).
+
+words = ["tiger", "bird"]
+
+# Extract word IDs of given words
+word_ids = [nlp.vocab.strings[w] for w in words]
+
+# Extract word vectors and stack the first five elements vertically
+word_vectors = np.vstack([nlp.vocab.vectors[i][:5] for i in word_ids])
+
+# Calculate the transformed word vectors using the pca object
+pca = PCA(n_components=2)
+word_vectors_transformed = pca.fit_transform(word_vectors)
+
+# Print the first component of the transformed word vectors
+print(word_vectors_transformed[:, 0])
+=> Output: <script.py> output:
+    [ 0.5182773 -0.5182773]
+
+g) Similar words in a vocabulary
+# Find the most similar word to the word computer
+most_similar_words = nlp.vocab.vectors.most_similar(np.asarray([word_vector]), n = 1)
+
+# Find the list of similar words given the word IDs
+words = [nlp.vocab.strings[w] for w in most_similar_words[0][0]]
+print(words)
+
+Similarity scores:
+1) Angle "theta" close to 0 (cos "theta" close to 1) => Similar vectors
+2) Angle "theta" close to 90 (cos "theta" close to 0) => Orthogonal vectors
+3) Angle "theta" close to 180 (cos "theta" close to -1) => Opposite vectors
+
+h) Doc similarity with spaCy
+Semantic similarity is the process of analyzing multiple sentences to identify similarities between them. The main objective of semantic similarity is to measure the distance between the semantic meanings of a pair of words, phrases, sentences, or documents. For example, the word “car” is more similar to “bus” than it is to “cat”. 
+
+# Create a documents list containing Doc containers
+documents = [nlp(t) for t in texts]
+
+# Create a Doc container of the category
+category = "canned dog food"
+category_document = nlp(category)
+
+# Print similarity scores of each Doc container and the category_document
+for i, doc in enumerate(documents):
+  print(f"Semantic similarity with document {i+1}:", round(doc.similarity(category_document), 3))
+=> Output: <script.py> output:
+    Semantic similarity with document 1: 0.84
+    Semantic similarity with document 2: 0.561
+    Semantic similarity with document 3: 0.577
+    Semantic similarity with document 4: 0.583
+    Semantic similarity with document 5: 0.526
+
+i) Span similarity with spaCy
+# Create a Doc container for the category
+category = "canned dog food"
+category_document = nlp(category)
+
+# Print similarity score of a given Span and category_document
+document_span = document[0:3]
+print(f"Semantic similarity with", document_span.text, ":", round(document_span.similarity(category_document), 3))
+=> Output: <script.py> output:
+    Semantic similarity with canned food products : 0.866
+
+j) Semantic similarity for categorizing text
+# Populate Doc containers for the word "sauce" and for "texts" string 
+key = nlp("sauce")
+sentences = nlp(texts)
+
+# Calculate similarity score of each sentence and a Doc container for the word sauce
+semantic_scores = []
+for sent in sentences.sents:
+	semantic_scores.append({"score": round(sent.similarity(key), 2)})
+print(semantic_scores)
+=> Output: <script.py> output:
+    [{'score': 0.65}, {'score': 0.35}]
+
+
+## CHAPTER 3: DATA ANALYSIS WITH SPACY
+
+A spaCy NER pipeline: Tokenization; Named entity identification; Named entity classification
+Adding pipes: 
+- sentencizer: spaCy pipeline component for sentence segmentation
+nlp.analyze_pipes() analyzes a spaCy pipeline to determine:
++ Attributes that pipeline components set
++ Scores a component produces during training
++ Presence of all required attributes
+
+a) Adding pipes in spaCy
+You often use an existing spaCy model for different NLP tasks. However, in some cases, an off-the-shelf pipeline component such as sentence segmentation will take long times to produce expected results.
+
+# Load a blank spaCy English model and add a sentencizer component
+nlp = spacy.blank("en")
+nlp.add_pipe("sentencizer")
+
+# Create Doc containers, store sentences and print its number of sentences
+doc = nlp(texts)
+sentences = [s for s in doc.sents]
+print("Number of sentences: ", len(sentences), "\n")
+
+# Print the list of tokens in the second sentence
+print("Second sentence tokens: ", [token for token in sentences[1]])
+=> <script.py> output:
+    Number of sentences:  19 
+    
+    Second sentence tokens:  [The, product, looks, more, like, a, stew, than, a, processed, meat, and, it, smells, better, .]
+
+b) Analyzing pipelines in spaCy
+spaCy allows you to analyze a spaCy pipeline to check whether any required attributes are not set.
+
+# Load a blank spaCy English model
+nlp = spacy.blank("en")
+
+# Add tagger and entity_linker pipeline components
+nlp.add_pipe("tagger")
+nlp.add_pipe("entity_linker")
+
+# Analyze the pipeline
+analysis = nlp.analyze_pipes(pretty=True)
+=> Output: <script.py> output:
+    [1m
+    ============================= Pipeline Overview =============================[0m
+    
+    #   Component       Assigns           Requires         Scores        Retokenizes
+    -   -------------   ---------------   --------------   -----------   -----------
+    0   tagger          token.tag                          tag_acc       False      
+                                                                                    
+    1   entity_linker   token.ent_kb_id   doc.ents         nel_micro_f   False      
+                                          doc.sents        nel_micro_r              
+                                          token.ent_iob    nel_micro_p              
+                                          token.ent_type                            
+    
+    [1m
+    ================================ Problems (4) ================================[0m
+    [38;5;3m⚠ 'entity_linker' requirements not met: doc.ents, doc.sents,
+    token.ent_iob, token.ent_type[0m
+
+c) EntityRuler with blank spaCy model
+EntityRuler lets you to add entities to doc.ents. It can be combined with EntityRecognizer, a spaCy pipeline component for named-entity recognition, to boost accuracy, or used on its own to implement a purely rule-based entity recognition system.
+
+nlp = spacy.blank("en")
+patterns = [{"label": "ORG", "pattern": [{"LOWER": "openai"}]},
+            {"label": "ORG", "pattern": [{"LOWER": "microsoft"}]}]
+text = "OpenAI has joined forces with Microsoft."
+
+# Add EntityRuler component to the model
+entity_ruler = nlp.add_pipe("entity_ruler")
+
+# Add given patterns to the EntityRuler component
+entity_ruler.add_patterns(patterns)
+
+# Run the model on a given text
+doc = nlp(text)
+
+# Print entities text and type for all entities in the Doc container
+print([(ent.text, ent.label_) for ent in doc.ents])
+=> Output: <script.py> output:
+    [('OpenAI', 'ORG'), ('Microsoft', 'ORG')]
+
+d) EntityRuler for NER
+EntityRuler can be combined with EntityRecognizer of an existing model to boost its accuracy.
+
+nlp = spacy.load("en_core_web_sm")
+text = "New York Group was built in 1987."
+
+# Add an EntityRuler to the nlp before NER component
+ruler = nlp.add_pipe("entity_ruler", before='ner')
+
+# Define a pattern to classify lower cased new york group as ORG
+patterns = [{"label": "ORG", "pattern": [{"lower": "new york group"}]}]
+
+# Add the patterns to the EntityRuler component
+ruler.add_patterns(patterns)
+
+# Run the model and print entities text and type for all the entities
+doc = nlp(text)
+print([(ent.text, ent.label_) for ent in doc.ents])
+=> Output: <script.py> output:
+    [('New York Group', 'ORG'), ('1987', 'DATE')]
+
+e) EntityRuler with multi-patterns in spaCy
+EntityRuler lets you to add entities to doc.ents and boost its named entity recognition performance.
+
+nlp = spacy.load("en_core_web_md")
+
+# Print a list of tuples of entities text and types in the example_text
+print("Before EntityRuler: ", [(ent.text, ent.label_) for ent in nlp(example_text).ents], "\n")
+
+# Define pattern to add a label PERSON for lower cased sisters and brother entities
+patterns = [{"label": "PERSON", "pattern": [{"lower": "sisters"}]},
+            {"label": "PERSON", "pattern": [{"lower": "brother"}]}]
+
+# Add an EntityRuler component and add the patterns to the ruler
+ruler = nlp.add_pipe("entity_ruler")
+ruler.add_patterns(patterns)
+
+# Print a list of tuples of entities text and types
+print("After EntityRuler: ", [(ent.text, ent.label_) for ent in nlp(example_text).ents])'
+=> Output: <script.py> output:
+    Before EntityRuler:  [('Filberts', 'ORG'), ('Edmund', 'PERSON')] 
+    
+    After EntityRuler:  [('Filberts', 'ORG'), ('Edmund', 'PERSON'), ('Brother', 'PERSON'), ('Sisters', 'PERSON')]
+
+f) RegEx in Python
+
+Rule-based information extraction is useful for many NLP tasks. Certain types of entities, such as dates or phone numbers have distinct formats that can be recognized by a set of rules without needing to train any model.
+
+text = "Our phone number is (425)-123-4567."
+
+# Define a pattern to match phone numbers
+pattern = r"\((\d){3}\)-(\d){3}-(\d){4}"
+
+# Find all the matching patterns in the text
+phones = re.finditer(pattern, text)
+
+# Print start and end characters and matching section of the text
+for match in phones:
+    start_char = match.start()
+    end_char = match.end()
+    print("Start character: ", start_char, "| End character: ", end_char, "| Matching text: ", text[start_char:end_char])
+=> <script.py> output:
+    Start character:  20 | End character:  34 | Matching text:  (425)-123-4567
+
+g) RegEx with EntityRuler in spaCy
+Regular expressions, or RegEx, are used for rule-based information extraction with complex string matching patterns. RegEx can be used to retrieve patterns or replace matching patterns in a string with some other patterns.
+
+text = "Our phone number is 4251234567."
+
+# Define a pattern to match phone numbers
+patterns = [{"label": "PHONE_NUMBERS", "pattern": [{"TEXT": {"REGEX": "(\d){10}"}}]}]
+
+# Load a blank model and add an EntityRuler
+nlp = spacy.blank("en")
+ruler = nlp.add_pipe("entity_ruler")
+
+# Add the compiled patterns to the EntityRuler
+ruler.add_patterns(patterns)
+
+# Print the tuple of entities texts and types for the given text
+doc = nlp(text)
+print([(ent.text, ent.label_) for ent in doc.ents])
+=> Output: <script.py> output:
+    [('4251234567', 'PHONE_NUMBERS')]
+
+h) Matching a single term in spaCy
+RegEx patterns are not trivial to read, write and debug. But you are not at a loss, spaCy provides a readable and production-level alternative, the Matcher class. The Matcher class can match predefined rules to a sequence of tokens in a given Doc container.
+
+nlp = spacy.load("en_core_web_sm")
+doc = nlp(example_text)
+
+# Initialize a Matcher object
+matcher = Matcher(nlp.vocab)
+
+# Define a pattern to match lower cased word witch
+pattern = [{"lower": "witch"}]
+
+# Add the pattern to matcher object and find matches
+matcher.add("CustomMatcher", [pattern])
+matches = matcher(doc)
+
+# Print start and end token indices and span of the matched text
+for match_id, start, end in matches:
+    print("Start token: ", start, " | End token: ", end, "| Matched text: ", doc[start:end].text)
+=> Output: <script.py> output:
+    Start token:  24  | End token:  25 | Matched text:  Witch
+    Start token:  47  | End token:  48 | Matched text:  Witch
+
+i) PhraseMatcher in spaCy
+While processing unstructured text, you often have long lists and dictionaries that you want to scan and match in given texts. The Matcher patterns are handcrafted and each token needs to be coded individually. If you have a long list of phrases, Matcher is no longer the best option. In this instance, PhraseMatcher class helps us match long dictionaries.
+
+text = "There are only a few acceptable IP addresse: (1) 127.100.0.1, (2) 123.4.1.0."
+terms = ["110.0.0.0", "101.243.0.0"]
+
+# Initialize a PhraseMatcher class to match to shapes of given terms
+matcher = PhraseMatcher(nlp.vocab, attr = "SHAPE")
+
+# Create patterns to add to the PhraseMatcher object
+patterns = [nlp.make_doc(term) for term in terms]
+matcher.add("IPAddresses", patterns)
+
+# Find matches to the given patterns and print start and end characters and matches texts
+doc = nlp(text)
+matches = matcher(doc)
+for match_id, start, end in matches:
+    print("Start token: ", start, " | End token: ", end, "| Matched text: ", doc[start:end].text)
+=> Output: <script.py> output:
+    Start token:  12  | End token:  13 | Matched text:  127.100.0.1
+    Start token:  17  | End token:  18 | Matched text:  123.4.1.0
+
+j) Matching with extended syntax in spaCy
+Rule-based information extraction is essential for any NLP pipeline. The Matcher class allows patterns to be more expressive by allowing some operators inside the curly brackets. These operators are for extended comparison and look similar to Python's in, not in and comparison operators.
+
+nlp = spacy.load("en_core_web_sm")
+doc = nlp(example_text)
+
+# Define a matcher object
+matcher = Matcher(nlp.vocab)
+# Define a pattern to match tiny squares and tiny mouthful
+pattern = [{"lower": "tiny"}, {"lower": {"IN": ["squares", "mouthful"]}}]
+
+# Add the pattern to matcher object and find matches
+matcher.add("CustomMatcher", [pattern])
+matches = matcher(doc)
+
+# Print out start and end token indices and the matched text span per match
+for match_id, start, end in matches:
+    print("Start token: ", start, " | End token: ", end, "| Matched text: ", doc[start:end].text)
+=> Output: <script.py> output:
+    Start token:  4  | End token:  6 | Matched text:  tiny squares
+    Start token:  19  | End token:  21 | Matched text:  tiny mouthful
+
+
+## CHAPTER 4: CUSTOMIZING SPACY MODELS
+
+Note: You can train a spaCy model further whenever it does not perform well on your data or does not include many of the labels in your specific domain.
+
+a) Model performance on your data
+In this case, the aim is to examine model performance on a specific entity label, PRODUCT. If a model can accurately classify a large percentage of PRODUCT entities (e.g. more than 75%), you do not need to train the model on examples of PRODUCT entities, otherwise, you should consider training the model to improve its performance on PRODUCT entity prediction.
+
+# Append a tuple of (entities text, entities label) if Jumbo is in the entity
+target_entities = []
+for doc in documents:
+  target_entities.extend([(ent.text, ent.label_) for ent in doc.ents if "Jumbo" in ent.text])
+print(target_entities)
+
+# Append True to the correct_labels list if the entity label is `PRODUCT`
+correct_labels = []
+for ent in target_entities:
+  if ent[1] == "PRODUCT":
+    correct_labels.append(True)
+  else:
+    correct_labels.append(False)
+print(correct_labels)
+=> Output: <script.py> output:
+    [('Jumbo', 'PERSON'), ('Jumbo', 'PERSON')]
+    [False, False]
+
+b) Annotation and preparing training data
+After collecting data, you can annotate data in the required format for a spaCy model.
+
+text = "A patient with chest pain had hyperthyroidism."
+entity_1 = "chest pain"
+entity_2 = "hyperthyroidism"
+
+# Store annotated data information in the correct format
+annotated_data = {"sentence": text, "entities": [{"label": "SYMPTOM", "value": entity_1}, {"label": "DISEASE", "value": entity_2}]}
+
+# Extract start and end characters of each entity
+entity_1_start_char = text.find(entity_1)
+entity_1_end_char = entity_1_start_char + len(entity_1)
+entity_2_start_char = text.find(entity_2)
+entity_2_end_char = entity_2_start_char + len(entity_2)
+
+# Store the same input information in the proper format for training
+training_data = [(text, {"entities": [(entity_1_start_char, entity_1_end_char, "SYMPTOM"), 
+                                      (entity_2_start_char, entity_2_end_char, "DISEASE")]})]
+print(training_data)
+=> Output: <script.py> output:
+    [('A patient with chest pain had hyperthyroidism.', {'entities': [(15, 25, 'SYMPTOM'), (30, 45, 'DISEASE')]})]
+
+c) Compatible training data
+example_text = 'A patient with chest pain had hyperthyroidism.'
+training_data = [(example_text, {'entities': [(15, 25, 'SYMPTOM'), (30, 45, 'DISEASE')]})]
+
+all_examples = []
+# Iterate through text and annotations and convert text to a Doc container
+for text, annotations in training_data:
+  doc = nlp(text)
+  
+  # Create an Example object from the doc contianer and annotations
+  example_sentence = Example.from_dict(doc, annotations)
+  print(example_sentence.to_dict(), "\n")
+  
+  # Append the Example object to the list of all examples
+  all_examples.append(example_sentence)
+  
+print("Number of formatted training data: ", len(all_examples))
+=> Output: <script.py> output:
+    {'doc_annotation': {'cats': {}, 'entities': ['O', 'O', 'O', 'B-SYMPTOM', 'L-SYMPTOM', 'O', 'U-DISEASE', 'O'], 'links': {}}, 'token_annotation': {'ORTH': ['A', 'patient', 'with', 'chest', 'pain', 'had', 'hyperthyroidism', '.'], 'SPACY': [True, True, True, True, True, True, False, False], 'TAG': ['', '', '', '', '', '', '', ''], 'LEMMA': ['', '', '', '', '', '', '', ''], 'POS': ['', '', '', '', '', '', '', ''], 'MORPH': ['', '', '', '', '', '', '', ''], 'HEAD': [0, 1, 2, 3, 4, 5, 6, 7], 'DEP': ['', '', '', '', '', '', '', ''], 'SENT_START': [1, 0, 0, 0, 0, 0, 0, 0]}} 
+    
+    Number of formatted training data:  1
+
+d) Training preparation steps
+Before and during training of a spaCy model, you'll need to (1) disable other pipeline components in order to only train the intended component and (2) convert a Doc container of a training data point and its corresponding annotations into an Example class.
+
+nlp = spacy.load("en_core_web_sm")
+
+# Disable all pipeline components of  except `ner`
+other_pipes = [pipe for pipe in nlp.pipe_names if pipe != 'ner']
+nlp.disable_pipes(*other_pipes)
+
+# Convert a text and its annotations to the correct format usable for training
+doc = nlp.make_doc(text)
+example = Example.from_dict(doc, annotations)
+print("Example object for training: \n", example.to_dict())
+=> Output: <script.py> output:
+    Example object for training: 
+     {'doc_annotation': {'cats': {}, 'entities': ['O', 'O', 'O', 'O', 'O', 'U-GPE', 'O'], 'links': {}}, 'token_annotation': {'ORTH': ['I', 'will', 'visit', 'you', 'in', 'Austin', '.'], 'SPACY': [True, True, True, True, True, False, False], 'TAG': ['', '', '', '', '', '', ''], 'LEMMA': ['', '', '', '', '', '', ''], 'POS': ['', '', '', '', '', '', ''], 'MORPH': ['', '', '', '', '', '', ''], 'HEAD': [0, 1, 2, 3, 4, 5, 6], 'DEP': ['', '', '', '', '', '', ''], 'SENT_START': [1, 0, 0, 0, 0, 0, 0]}}
+
+e) Train an existing NER model
+nlp = spacy.load("en_core_web_sm")
+print("Before training: ", [(ent.text, ent.label_)for ent in nlp(test).ents])
+other_pipes = [pipe for pipe in nlp.pipe_names if pipe != 'ner']
+nlp.disable_pipes(*other_pipes)
+optimizer = nlp.create_optimizer()
+
+# Shuffle training data and the dataset using random package per epoch
+for i in range(epochs):
+  random.shuffle(training_data)
+  for text, annotations in training_data:
+    doc = nlp.make_doc(text)
+    # Update nlp model after setting sgd argument to optimizer
+    example = Example.from_dict(doc, annotations)
+    nlp.update([example], sgd = optimizer)
+print("After training: ", [(ent.text, ent.label_)for ent in nlp(test).ents])
+=> Output: <script.py> output:
+    Before training:  [('Sam', 'PERSON')]
+    After training:  [('Sam', 'PERSON'), ('house', 'GPE')]
+
+f) Training a spaCy model from scratch
+# Load a blank English model, add NER component, add given labels to the ner pipeline
+nlp = spacy.blank("en")
+ner = nlp.add_pipe("ner")
+for ent in labels:
+    ner.add_label(ent)
+
+# Disable other pipeline components, complete training loop and run training loop
+other_pipes = [pipe for pipe in nlp.pipe_names if pipe != "ner"]
+nlp.disable_pipes(*other_pipes)
+losses = {}
+optimizer = nlp.begin_training()
+for text, annotation in training_data:
+    doc = nlp.make_doc(text)
+    example = Example.from_dict(doc, annotation)
+    nlp.update([example], sgd=optimizer, losses=losses)
+    print(losses)
+=> Output: <script.py> output:
+    {'ner': 98.42856240272522}
+    {'ner': 189.34197914600372}
+    {'ner': 310.98384952545166}
+    {'ner': 377.18853384256363}
+    {'ner': 578.3004557490349}
+    {'ner': 608.2531691193581}
+    {'ner': 673.164011657238}
+    {'ner': 723.6257713735104}
+    {'ner': 746.0405215527862}
+    {'ner': 756.4262755732052}
+    {'ner': 790.0200939634815}
+    {'ner': 795.990012896822}
+    {'ner': 796.0241677922168}
+    {'ner': 798.0212131336592}
+    {'ner': 813.9837758949773}
+    {'ner': 817.9703837852048}
+    {'ner': 829.9056551901582}
+    {'ner': 845.8729668580933}
+    {'ner': 853.8427640225843}
+    {'ner': 863.77342558173}
