@@ -328,4 +328,402 @@ print(find_persons(tc))
 
 ## CHAPTER 3: N-GRAM MODELS
 
-a)
+a) Bag of Words model for movie taglines
+In this exercise, you have been provided with a corpus of more than 7000 movie tag lines. Your job is to generate the bag of words representation bow_matrix for these taglines. For this exercise, we will ignore the text preprocessing step and generate bow_matrix directly.
+
+# Import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Create CountVectorizer object
+vectorizer = CountVectorizer()
+
+# Generate matrix of word vectors
+bow_matrix = vectorizer.fit_transform(corpus)
+
+# Print the shape of bow_matrix
+print(bow_matrix.shape)
+=> Output: <script.py> output:
+    (7033, 6614)
+Notice that the word vectors created have more than 6600 dimensions. However, most of these dimensions have a value of zero since most words do not occur in a particular tagline.
+
+b) Analyzing dimensionality and preprocessing
+
+# Import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Create CountVectorizer object
+vectorizer = CountVectorizer()
+
+# Generate matrix of word vectors
+bow_lem_matrix = vectorizer.fit_transform(lem_corpus)
+
+# Print the shape of bow_lem_matrix
+print(bow_lem_matrix.shape)
+=> Output: <script.py> output:
+    (6959, 5223)
+Notice how the number of features have reduced significantly from around 6600 to around 5223 for pre-processed movie taglines. The reduced number of dimensions on account of text preprocessing usually leads to better performance when conducting machine learning.
+
+c) Mapping feature indices with feature names
+Input: ['The lion is the king of the jungle', 'Lions have lifespans of a decade', 'The lion is an endangered species']
+
+# Create CountVectorizer object
+vectorizer = CountVectorizer()
+
+# Generate matrix of word vectors
+bow_matrix = vectorizer.fit_transform(corpus)
+
+# Convert bow_matrix into a DataFrame
+bow_df = pd.DataFrame(bow_matrix.toarray())
+
+# Map the column names to vocabulary 
+bow_df.columns = vectorizer.get_feature_names()
+
+# Print bow_df
+print(bow_df)
+=> Output: <script.py> output:
+       an  decade  endangered  have  is  ...  lion  lions  of  species  the
+    0   0       0           0     0   1  ...     1      0   1        0    3
+    1   0       1           0     1   0  ...     0      1   1        0    0
+    2   1       0           1     0   1  ...     1      0   0        1    1
+    
+    [3 rows x 13 columns]
+
+d) BoW vectors for movie reviews
+
+# Import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+
+# Create a CountVectorizer object
+vectorizer = CountVectorizer(lowercase=True, stop_words='english')
+
+# Fit and transform X_train
+X_train_bow = vectorizer.fit_transform(X_train)
+
+# Transform X_test
+X_test_bow = vectorizer.transform(X_test)
+
+# Print shape of X_train_bow and X_test_bow
+print(X_train_bow.shape)
+print(X_test_bow.shape)
+=> Output: <script.py> output:
+    (250, 8158)
+    (750, 8158)
+
+e) Predicting the sentiment of a movie review
+In the previous exercise, you generated the bag-of-words representations for the training and test movie review data. In this exercise, we will use this model to train a Naive Bayes classifier that can detect the sentiment of a movie review and compute its accuracy. Note that since this is a binary classification problem, the model is only capable of classifying a review as either positive (1) or negative (0). It is incapable of detecting neutral reviews.
+
+# Create a MultinomialNB object
+clf = MultinomialNB()
+
+# Fit the classifier
+clf.fit(X_train_bow, y_train)
+
+# Measure the accuracy
+accuracy = clf.score(X_test_bow, y_test)
+print("The accuracy of the classifier on the test set is %.3f" % accuracy)
+
+# Predict the sentiment of a negative review
+review = "The movie was terrible. The music was underwhelming and the acting mediocre."
+prediction = clf.predict(vectorizer.transform([review]))[0]
+print("The sentiment predicted by the classifier is %i" % (prediction))
+=> Output: <script.py> output:
+    The accuracy of the classifier on the test set is 0.732
+    The sentiment predicted by the classifier is 0
+Note that the accuracy of the classifier is 73.2%. Considering the fact that it was trained on only 750 reviews, this is reasonably good performance. The classifier also correctly predicts the sentiment of a mini negative review which we passed into it.
+
+f) n-gram models for movie tag lines
+
+# Generate n-grams upto n=1
+vectorizer_ng1 = CountVectorizer(ngram_range=(1,1))
+ng1 = vectorizer_ng1.fit_transform(corpus)
+
+# Generate n-grams upto n=2
+vectorizer_ng2 = CountVectorizer(ngram_range=(1,2))
+ng2 = vectorizer_ng2.fit_transform(corpus)
+
+# Generate n-grams upto n=3
+vectorizer_ng3 = CountVectorizer(ngram_range=(1,3))
+ng3 = vectorizer_ng3.fit_transform(corpus)
+
+# Print the number of features for each model
+print("ng1, ng2 and ng3 have %i, %i and %i features respectively" % (ng1.shape[1], ng2.shape[1], ng3.shape[1]))
+=> Output: <script.py> output:
+    ng1, ng2 and ng3 have 6614, 37100 and 76881 features respectively
+
+g) Higher order n-grams for sentiment analysis
+
+# Define an instance of MultinomialNB 
+clf_ng = MultinomialNB()
+
+# Fit the classifier
+clf_ng.fit(X_train_ng, y_train)
+
+# Measure the accuracy
+accuracy = clf_ng.score(X_test_ng, y_test)
+print("The accuracy of the classifier on the test set is %.3f" % accuracy)
+
+# Predict the sentiment of a negative review
+review = "The movie was not good. The plot had several holes and the acting lacked panache."
+prediction = clf_ng.predict(ng_vectorizer.transform([review]))[0]
+print("The sentiment predicted by the classifier is %i" % (prediction))
+=> Output: <script.py> output:
+    The accuracy of the classifier on the test set is 0.758
+    The sentiment predicted by the classifier is 0
+
+h) Comparing performance of n-gram models
+
+start_time = time.time()
+# Splitting the data into training and test sets
+train_X, test_X, train_y, test_y = train_test_split(df['review'], df['sentiment'], test_size=0.5, random_state=42, stratify=df['sentiment'])
+
+# (1) Generating ngrams
+vectorizer = CountVectorizer()
+train_X = vectorizer.fit_transform(train_X)
+test_X = vectorizer.transform(test_X)
+
+# (2) Generating ngrams
+vectorizer = CountVectorizer(ngram_range=(1,3))
+train_X = vectorizer.fit_transform(train_X)
+test_X = vectorizer.transform(test_X)
+
+# Fit classifier
+clf = MultinomialNB()
+clf.fit(train_X, train_y)
+
+# Print accuracy, time and number of dimensions
+print("The program took %.3f seconds to complete. The accuracy on the test set is %.2f. The ngram representation had %i features." % (time.time() - start_time, clf.score(test_X, test_y), train_X.shape[1]))
+=> Output: <script.py> output:
+   (1) The program took 0.153 seconds to complete. The accuracy on the test set is 0.75. The ngram representation had 12347 features.
+   (2) The program took 0.958 seconds to complete. The accuracy on the test set is 0.77. The ngram representation had 178240 features.
+The program took around 0.2 seconds in the case of the unigram model and more than 10 times longer for the higher order n-gram model. The unigram model had over 12,000 features whereas the n-gram model for upto n=3 had over 178,000! Despite taking higher computation time and generating more features, the classifier only performs marginally better in the latter case, producing an accuracy of 77% in comparison to the 75% for the unigram model.
+
+
+## CHAPTER 4: TF-IDF AND SIMILARITY SCORES
+
+a) tf-idf vectors for TED talks
+In this exercise, you have been given a corpus ted which contains the transcripts of 500 TED Talks. Your task is to generate the tf-idf vectors for these talks.
+
+# Import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Create TfidfVectorizer object
+vectorizer = TfidfVectorizer()
+
+# Generate matrix of word vectors
+tfidf_matrix = vectorizer.fit_transform(ted)
+
+# Print the shape of tfidf_matrix
+print(tfidf_matrix.shape)
+=> Output: <script.py> output:
+    (500, 29158)
+
+b) Computing dot product
+In this exercise, we will learn to compute the dot product between two vectors, A = (1, 3) and B = (-2, 2), using the numpy library. More specifically, we will use the np.dot() function to compute the dot product of two numpy arrays.
+
+# Initialize numpy vectors
+A = np.array([1,3])
+B = np.array([-2, 2])
+
+# Compute dot product
+dot_prod = np.dot(A, B)
+
+# Print dot product
+print(dot_prod)
+=> Output: <script.py> output: (The dot product of the two vectors is 1 * -2 + 3 * 2 = 4)
+    4
+
+c) Cosine similarity matrix of a corpus
+Input: corpus:
+ ['The sun is the largest celestial body in the solar system', 'The solar system consists of the sun and eight revolving planets', 'Ra was the Egyptian Sun God', 'The Pyramids were the pinnacle of Egyptian architecture', 'The quick brown fox jumps over the lazy dog']
+
+# Initialize an instance of tf-idf Vectorizer
+tfidf_vectorizer = TfidfVectorizer()
+
+# Generate the tf-idf vectors for the corpus
+tfidf_matrix = tfidf_vectorizer.fit_transform(corpus)
+
+# Compute and print the cosine similarity matrix
+cosine_sim = cosine_similarity(tfidf_matrix,tfidf_matrix)
+print(cosine_sim)
+=> Output: <script.py> output:
+    [[1.         0.36413198 0.18314713 0.18435251 0.16336438]
+     [0.36413198 1.         0.15054075 0.21704584 0.11203887]
+     [0.18314713 0.15054075 1.         0.21318602 0.07763512]
+     [0.18435251 0.21704584 0.21318602 1.         0.12960089]
+     [0.16336438 0.11203887 0.07763512 0.12960089 1.        ]]
+
+d) Comparing linear_kernel and cosine_similarity
+
+(i) Compute the cosine similarity matrix for tfidf_matrix using cosine_similarity.
+# Record start time
+start = time.time()
+
+# Compute cosine similarity matrix
+cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+
+# Print cosine similarity matrix
+print(cosine_sim)
+
+# Print time taken
+print("Time taken: %s seconds" %(time.time() - start))
+=> Output: <script.py> output:
+    [[1.         0.         0.         ... 0.         0.         0.        ]
+     [0.         1.         0.         ... 0.         0.         0.        ]
+     [0.         0.         1.         ... 0.         0.01418221 0.        ]
+     ...
+     [0.         0.         0.         ... 1.         0.01589009 0.        ]
+     [0.         0.         0.01418221 ... 0.01589009 1.         0.        ]
+     [0.         0.         0.         ... 0.         0.         1.        ]]
+    Time taken: 0.26941871643066406 seconds
+
+(ii) Compute the cosine similarity matrix for tfidf_matrix using linear_kernel.
+# Record start time
+start = time.time()
+
+# Compute cosine similarity matrix
+cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
+
+# Print cosine similarity matrix
+print(cosine_sim)
+
+# Print time taken
+print("Time taken: %s seconds" %(time.time() - start))
+=> Output: <script.py> output:
+    [[1.         0.         0.         ... 0.         0.         0.        ]
+     [0.         1.         0.         ... 0.         0.         0.        ]
+     [0.         0.         1.         ... 0.         0.01418221 0.        ]
+     ...
+     [0.         0.         0.         ... 1.         0.01589009 0.        ]
+     [0.         0.         0.01418221 ... 0.01589009 1.         0.        ]
+     [0.         0.         0.         ... 0.         0.         1.        ]]
+    Time taken: 0.2725694179534912 seconds
+Notice how both linear_kernel and cosine_similarity produced the same result. However, linear_kernel took a smaller amount of time to execute. When you're working with a very large amount of data and your vectors are in the tf-idf representation, it is good practice to default to linear_kernel to improve performance. (NOTE: In case, you see linear_kernel taking more time, it's because the dataset we're dealing with is extremely small and Python's time module is incapable of capture such minute time differences accurately)
+
+e) Plot recommendation engine
+In this exercise, we will build a recommendation engine that suggests movies based on similarity of plot lines. You have been given a get_recommendations() function that takes in the title of a movie, a similarity matrix and an indices series as its arguments and outputs a list of most similar movies. indices has already been provided to you. You have also been given a movie_plots Series that contains the plot lines of several movies. Your task is to generate a cosine similarity matrix for the tf-idf vectors of these plots.
+
+# Initialize the TfidfVectorizer 
+tfidf = TfidfVectorizer(stop_words='english')
+
+# Construct the TF-IDF matrix
+tfidf_matrix = tfidf.fit_transform(movie_plots)
+
+# Generate the cosine similarity matrix
+cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
+ 
+# Generate recommendations
+print(get_recommendations('The Dark Knight Rises', cosine_sim, indices))
+=> Output: <script.py> output:
+    1                              Batman Forever
+    2                                      Batman
+    3                              Batman Returns
+    8                  Batman: Under the Red Hood
+    9                            Batman: Year One
+    10    Batman: The Dark Knight Returns, Part 1
+    11    Batman: The Dark Knight Returns, Part 2
+    5                Batman: Mask of the Phantasm
+    7                               Batman Begins
+    4                              Batman & Robin
+    Name: title, dtype: object
+ Notice how the recommender correctly identifies 'The Dark Knight Rises' as a Batman movie and recommends other Batman movies as a result. This sytem is, of course, very primitive and there are a host of ways in which it could be improved. One method would be to look at the cast, crew and genre in addition to the plot to generate recommendations.
+
+f) The recommender function
+In this exercise, we will build a recommender function get_recommendations(), as discussed in the lesson and the previous exercise. As we know, it takes in a title, a cosine similarity matrix, and a movie title and index mapping as arguments and outputs a list of 10 titles most similar to the original title (excluding the title itself).
+
+# Generate mapping between titles and index
+indices = pd.Series(metadata.index, index=metadata['title']).drop_duplicates()
+
+def get_recommendations(title, cosine_sim, indices):
+    # Get index of movie that matches title
+    idx = indices[title]
+    # Sort the movies based on the similarity scores
+    sim_scores = list(enumerate(cosine_sim[idx]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    # Get the scores for 10 most similar movies
+    sim_scores = sim_scores[1:11]
+    # Get the movie indices
+    movie_indices = [i[0] for i in sim_scores]
+    # Return the top 10 most similar movies
+    return metadata['title'].iloc[movie_indices]
+
+g) TED talk recommender
+
+# Initialize the TfidfVectorizer 
+tfidf = TfidfVectorizer(stop_words='english')
+
+# Construct the TF-IDF matrix
+tfidf_matrix = tfidf.fit_transform(transcripts)
+
+# Generate the cosine similarity matrix
+cosine_sim = linear_kernel(tfidf_matrix, tfidf_matrix)
+ 
+# Generate recommendations
+print(get_recommendations('5 ways to kill your dreams', cosine_sim, indices))
+=> Output: <script.py> output:
+    453             Success is a continuous journey
+    157                        Why we do what we do
+    494                   How to find work you love
+    149          My journey into movies that matter
+    447                        One Laptop per Child
+    230             How to get your ideas to spread
+    497         Plug into your hard-wired happiness
+    495    Why you will fail to have a great career
+    179             Be suspicious of simple stories
+    53                          To upgrade is human
+    Name: title, dtype: object
+This recommender works surprisingly well despite being trained only on a small subset of TED talks. In fact, three of the talks recommended by our system is also recommended by the official TED website as talks to watch next after '5 ways to kill your dreams'!
+
+h) Generating word vectors
+Input: I like apples and oranges
+
+In this exercise, we will generate the pairwise similarity scores of all the words in a sentence. The sentence is available as sent and has been printed to the console for your convenience.
+
+# Create the doc object
+doc = nlp(sent)
+
+# Compute pairwise similarity scores
+for token1 in doc:
+  for token2 in doc:
+    print(token1.text, token2.text, token1.similarity(token2))
+=> Output: <script.py> output:
+    I I 1.0
+    I like 0.13463897
+    I apples -0.036133606
+    I and -0.085230574
+    I oranges 0.033708632
+    like I 0.13463897
+    like like 1.0
+    like apples 0.0007651703
+    like and 0.104521796
+    like oranges -0.045859136
+    apples I -0.036133606
+    apples like 0.0007651703
+    apples apples 1.0
+    apples and -0.051072996
+    apples oranges 0.46452007
+    and I -0.085230574
+    and like 0.104521796
+    and apples -0.051072996
+    and and 1.0
+    and oranges 0.038236685
+    oranges I 0.033708632
+    oranges like -0.045859136
+    oranges apples 0.46452007
+    oranges and 0.038236685
+    oranges oranges 1.0
+
+i) Computing similarity of Pink Floyd songs
+# Create Doc objects
+mother_doc = nlp(mother)
+hopes_doc = nlp(hopes)
+hey_doc = nlp(hey)
+
+# Print similarity between mother and hopes
+print(mother_doc.similarity(hopes_doc))
+
+# Print similarity between mother and hey
+print(mother_doc.similarity(hey_doc))
+=> Output: <script.py> output:
+    0.39086030814019257
+    0.8043759483951038
+Notice that 'Mother' and 'Hey You' have a similarity score of 0.9 whereas 'Mother' and 'High Hopes' has a score of only 0.6. This is probably because 'Mother' and 'Hey You' were both songs from the same album 'The Wall' and were penned by Roger Waters. On the other hand, 'High Hopes' was a part of the album 'Division Bell' with lyrics by David Gilmour and his wife, Penny Samson.
