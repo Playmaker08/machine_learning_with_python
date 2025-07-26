@@ -1,3 +1,19 @@
 ## CHAPTER 1: INTRO TO PYTORCH
 
-a)
+a) Getting started with PyTorch tensors
+Tensors are PyTorch's core data structure and the foundation of deep learning. They're similar to NumPy arrays but have unique features. Here you have a Python list named temperatures containing daily readings from two weather stations. 
+
+# Import PyTorch
+import torch
+
+temperatures = [[72, 75, 78], [70, 73, 76]]
+
+# Create a tensor from temperatures
+temp_tensor = torch.tensor(temperatures)
+
+print(temp_tensor)
+Output: <script.py> output:
+    tensor([[72, 75, 78],
+            [70, 73, 76]])
+
+b)
