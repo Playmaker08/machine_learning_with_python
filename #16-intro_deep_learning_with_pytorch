@@ -12,8 +12,100 @@ temperatures = [[72, 75, 78], [70, 73, 76]]
 temp_tensor = torch.tensor(temperatures)
 
 print(temp_tensor)
-Output: <script.py> output:
+=> Output: <script.py> output:
     tensor([[72, 75, 78],
             [70, 73, 76]])
 
-b)
+b) Checking and adding tensors
+While collecting temperature data, you notice the readings are off by two degrees. Add two degrees to the temperatures tensor after verifying its shape and data type with torch to ensure compatibility with the adjustment tensor.
+
+adjustment = torch.tensor([[2, 2, 2], [2, 2, 2]])
+
+# Display the shape of the adjustment tensor
+print("Adjustment shape:", adjustment.shape)
+
+# Display the type of the adjustment tensor
+print("Adjustment type:", adjustment.dtype)
+
+print("Temperatures shape:", temperatures.shape)
+print("Temperatures type:", temperatures.dtype)
+
+# Add the temperatures and adjustment tensors
+corrected_temperatures = temperatures + adjustment
+print("Corrected temperatures:", corrected_temperatures)
+=> Output: <script.py> output:
+    Adjustment shape: torch.Size([2, 3])
+    Adjustment type: torch.int64
+    Temperatures shape: torch.Size([2, 3])
+    Temperatures type: torch.int64
+
+    Corrected temperatures: tensor([[74, 77, 80],
+            [72, 75, 78]])
+
+c) Linear layer network
+Neural networks often contain many layers, but most of them are linear layers. Understanding a single linear layer helps you grasp how they work before adding complexity.
+
+import torch
+import torch.nn as nn
+
+input_tensor = torch.tensor([[0.3471, 0.4547, -0.2356]])
+
+# Create a Linear layer
+linear_layer = nn.Linear(
+                         in_features=3, 
+                         out_features=2
+                         )
+
+# Pass input_tensor through the linear layer
+output = linear_layer(input_tensor)
+
+print(output)
+=> Output: <script.py> output:
+    tensor([[0.2647, 0.4096]], grad_fn=<AddmmBackward0>)
+
+Note: In a linear model, weights and biases play a crucial role in determining how inputs are transformed into outputs. Weights determine how much influence each input has on the neuron's output.
+
+d) Implement a small neural network containing two linear layers in sequence
+
+import torch
+import torch.nn as nn
+
+input_tensor = torch.Tensor([[2, 3, 6, 7, 9, 3, 2, 1]])
+
+# Create a container for stacking linear layers
+model = nn.Sequential(nn.Linear(8, 4),
+                      nn.Linear(4, 1)
+                     )
+
+output = model(input_tensor)
+print(output)
+=> Output: <script.py> output:
+    tensor([[-1.4931]], grad_fn=<AddmmBackward0>)
+
+e) Counting the number of parameters
+
+import torch.nn as nn
+
+model = nn.Sequential(nn.Linear(9, 4),
+                      nn.Linear(4, 2),
+                      nn.Linear(2, 1))
+
+total = 0
+
+# Calculate the number of parameters in the model
+for p in model.parameters():
+  total += p.numel()
+  
+print(f"The number of parameters in the model is {total}")
+=> Output: <script.py> output:
+    The number of parameters in the model is 53
+
+
+## CHAPTER 2: NEURAL NETWORK ARCHITECTURE AND HYPERPARAMETERS
+
+a)
+
+
+
+
+
