@@ -103,9 +103,199 @@ print(f"The number of parameters in the model is {total}")
 
 ## CHAPTER 2: NEURAL NETWORK ARCHITECTURE AND HYPERPARAMETERS
 
+Note: A neural network with a single linear layer followed by a sigmoid activation is similar to a logistic regression model
+
+The sigmoid and softmax functions are key activation functions in deep learning, often used as the final step in a neural network.
+
+Sigmoid is for binary classification
+Softmax is for multi-class classification
+
+a) Create a sigmoid function and apply it on input_tensor
+
+input_tensor = torch.tensor([[2.4]])
+sigmoid = nn.Sigmoid()
+probability = sigmoid(input_tensor)
+print(probability)
+
+=> Output: <script.py> output:
+    tensor([[0.9168]])
+
+b) # Create a softmax function and apply it on input_tensor
+
+input_tensor = torch.tensor([[1.0, -6.0, 2.5, -0.3, 1.2, 0.8]])
+
+softmax = nn.Softmax(dim=-1)
+probabilities = softmax(input_tensor)
+print(probabilities)
+
+=> Output: <script.py> output:
+    tensor([[1.2828e-01, 1.1698e-04, 5.7492e-01, 3.4961e-02, 1.5669e-01, 1.0503e-01]])
+
+c) Building a binary classifier in PyTorch
+
+import torch
+import torch.nn as nn
+
+input_tensor = torch.Tensor([[3, 4, 6, 2, 3, 6, 8, 9]])
+
+# Implement a neural network for binary classification
+model = nn.Sequential(
+  nn.Linear(8, 1),
+  nn.Sigmoid()
+)
+
+output = model(input_tensor)
+print(output)
+
+=> Output: <script.py> output:
+    tensor([[0.7353]], grad_fn=<SigmoidBackward0>)
+
+d) From regression to multi-class classification
+
+# Create a 4-layer linear network that takes 11 input features from input_tensor and produces a single regression output.
+import torch
+import torch.nn as nn
+
+input_tensor = torch.Tensor([[3, 4, 6, 7, 10, 12, 2, 3, 6, 8, 9]])
+
+# Implement a neural network with exactly four linear layers
+model = nn.Sequential(
+  nn.Linear(11, 20),
+  nn.Linear(20, 12),
+  nn.Linear(12, 6),
+  nn.Linear(6, 1)  
+)
+
+output = model(input_tensor)
+print(output)
+
+# Update network below to perform a multi-class classification with four labels
+model = nn.Sequential(
+  nn.Linear(11, 20),
+  nn.Linear(20, 12),
+  nn.Linear(12, 6),
+  nn.Linear(6, 4), 
+  nn.Softmax(dim=-1)
+)
+
+output = model(input_tensor)
+print(output)
+
+=> Output: <script.py> output:
+    tensor([[0.0250, 0.5338, 0.1802, 0.2611]], grad_fn=<SoftmaxBackward0>)
+
+e) Creating one-hot encoded labels
+
+One-hot encoding converts a single integer label into a vector with N elements, where N is the number of classes. This vector contains zeros and a one at the correct position.
+Cross-entropy loss is a widely used method to measure classification loss. In this exercise, you’ll calculate cross-entropy loss in PyTorch using:
+
+y: the ground truth label.
+scores: a vector of predictions before softmax.
+=> Loss functions help neural networks learn by measuring prediction errors.
+
+y = 1
+num_classes = 3
+
+# Create the one-hot encoded vector using NumPy
+one_hot_numpy = np.array([0, 1, 0])
+
+# Create the one-hot encoded vector using PyTorch
+one_hot_pytorch = F.one_hot(torch.tensor(y), num_classes=num_classes)
+
+print("One-hot vector using NumPy:", one_hot_numpy)
+print("One-hot vector using PyTorch:", one_hot_pytorch)
+
+=> Output: <script.py> output:
+    One-hot vector using NumPy: [0 1 0]
+    One-hot vector using PyTorch: tensor([0, 1, 0])
+
+f) Calculating cross entropy loss
+
+import torch
+import torch.nn.functional as F
+from torch.nn import CrossEntropyLoss
+
+y = [2]
+scores = torch.tensor([[0.1, 6.0, -2.0, 3.2]])
+
+# Create a one-hot encoded vector of the label y
+one_hot_label = F.one_hot(torch.tensor(y), num_classes=4)
+
+# Create the cross entropy loss function
+criterion = CrossEntropyLoss()
+
+# Calculate the cross entropy loss
+loss = criterion(scores.double(), one_hot_label.double())
+print(loss)
+
+=> Output: <script.py> output:
+    tensor(8.0619, dtype=torch.float64)
+
+g) Accessing the model parameters
+
+model = nn.Sequential(nn.Linear(16, 8),
+                      nn.Linear(8, 2)
+                     )
+
+# Access the weight of the first linear layer
+weight_0 = model[0].weight
+print("Weight of the first layer:", weight_0)
+
+# Access the bias of the second linear layer
+bias_1 = model[1].bias
+print("Bias of the second layer:", bias_1)
+
+=> Output: <script.py> output:
+    Weight of the first layer: Parameter containing:
+    tensor([[-0.2474, -0.1837,  0.1161,  0.0262, -0.1423,  0.0670,  0.0421,  0.1149,
+              0.1479, -0.0976, -0.0620, -0.1398,  0.0773, -0.0710,  0.1472, -0.0547],
+            [ 0.0856,  0.0698, -0.1501, -0.1436,  0.0518, -0.2081,  0.2170,  0.2135,
+              0.2282,  0.1349,  0.0628,  0.1530, -0.1893, -0.1616,  0.1041,  0.0316],
+            [-0.2429, -0.1469, -0.1053,  0.0937, -0.1355, -0.0124,  0.1970, -0.0895,
+             -0.0654,  0.0436, -0.1414, -0.1710,  0.0442, -0.0213, -0.1406, -0.1138],
+            [-0.1642,  0.0252, -0.0772, -0.1645, -0.0946,  0.0551, -0.0503, -0.0929,
+              0.1288,  0.0086, -0.1701, -0.1722,  0.2471,  0.0508,  0.2494, -0.0811],
+            [-0.1996, -0.2287, -0.1312, -0.1041, -0.0490,  0.0984, -0.0774,  0.0225,
+              0.0498,  0.0225,  0.0910, -0.0463,  0.0598,  0.0886, -0.1058, -0.0943],
+            [-0.0992,  0.2024,  0.1520, -0.0972, -0.1161,  0.2192, -0.0716, -0.0181,
+              0.2365,  0.2371, -0.0715,  0.1469, -0.1789,  0.1610, -0.0047,  0.1644],
+            [ 0.1842,  0.1793, -0.2441, -0.0317, -0.1965, -0.1783,  0.0022,  0.1221,
+             -0.0556,  0.2451,  0.0762, -0.2298, -0.2442,  0.0310,  0.0820, -0.0343],
+            [-0.0598,  0.0873, -0.0679,  0.0401, -0.0036,  0.0370, -0.1217,  0.1866,
+              0.1062, -0.0703,  0.0783, -0.2337, -0.1862, -0.0437, -0.0830, -0.1718]],
+           requires_grad=True)
+    Bias of the second layer: Parameter containing:
+    tensor([-0.0686,  0.0167], requires_grad=True)
+
+h) Updating the weights manually
+
+weight0 = model[0].weight
+weight1 = model[1].weight
+weight2 = model[2].weight
+
+# Access the gradients of the weight of each linear layer
+grads0 = weight0.grad
+grads1 = weight1.grad
+grads2 = weight2.grad
+
+# Update the weights using the learning rate and the gradients
+weight0 = weight0 - lr * grads0
+weight1 = weight1 - lr * grads1
+weight2 = weight2 - lr * grads2
+
+i) Using the PyTorch optimizer
+
+# Create the optimizer
+optimizer = optim.SGD(model.parameters(), lr=0.001)
+
+loss = criterion(pred, target)
+loss.backward()
+
+# Update the model's parameters using the optimizer
+optimizer.step()
+
+
+## CHAPTER 3: TRAINING A NEURAL NETWORK WITH PYTORCH
+
 a)
-
-
-
-
 
