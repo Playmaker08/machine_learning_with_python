@@ -297,5 +297,68 @@ optimizer.step()
 
 ## CHAPTER 3: TRAINING A NEURAL NETWORK WITH PYTORCH
 
-a)
+a) Using TensorDataset
+
+Structuring your data into a dataset is one of the first steps in training a PyTorch neural network. TensorDataset simplifies this by converting NumPy arrays into a format PyTorch can use.
+The DataLoader class is essential for efficiently handling large datasets. It speeds up training, optimizes memory usage, and stabilizes gradient updates, making deep learning models more effective.
+
+import torch
+from torch.utils.data import TensorDataset
+
+X = animals.iloc[:, 1:-1].to_numpy()  
+y = animals.iloc[:, -1].to_numpy()
+
+# Create a dataset
+dataset = TensorDataset(torch.tensor(X), torch.tensor(y))
+
+# Print the first sample
+input_sample, label_sample = dataset[0]
+print('Input sample:', input_sample)
+print('Label sample:', label_sample)
+
+=> Output: <script.py> output:
+    Input sample: tensor([0, 1, 1, 0, 0, 2, 1])
+    Label sample: tensor(0)
+
+b) Using DataLoader
+
+from torch.utils.data import DataLoader
+
+# Create a DataLoader
+dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+
+# Iterate over the dataloader
+for batch_inputs, batch_labels in dataloader:
+    print('batch_inputs:', batch_inputs)
+    print('batch_labels:', batch_labels)
+
+=> Output: <script.py> output:
+    batch_inputs: tensor([[0, 1, 1, 0, 1, 2, 1],
+            [0, 0, 1, 0, 1, 4, 1]])
+    batch_labels: tensor([0, 2])
+    batch_inputs: tensor([[1, 0, 0, 1, 0, 4, 1],
+            [1, 0, 0, 1, 1, 4, 1]])
+    batch_labels: tensor([1, 1])
+    batch_inputs: tensor([[0, 1, 1, 0, 0, 2, 1]])
+    batch_labels: tensor([0])
+
+TRAINING A NEURAL NETWORK
+To train a neural network, follow these essential steps:
+
+1. Build the model
+Define the architecture of your neural network using layers and activation functions.
+2. Select a loss function
+Choose an appropriate loss function to measure the model’s prediction error (e.g., MSE for regression, CrossEntropy for classification).
+3. Prepare the dataset
+Load and preprocess the data, then divide it into training, validation, and test sets as needed.
+4. Choose an optimizer
+Select an optimization algorithm (e.g., SGD, Adam) that will update the model’s weights based on computed gradients.
+5. Run the training loop
+For each epoch:
+Forward pass: Pass the input data through the model to compute predictions and calculate the loss.
+Backward pass: Use backpropagation to compute gradients of the loss with respect to model parameters.
+Update weights: Apply the optimizer to adjust the model’s parameters based on the gradients.
+=> This process is repeated over multiple epochs until the model converges or reaches satisfactory performance.
+
+c)
 
