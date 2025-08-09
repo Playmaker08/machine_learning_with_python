@@ -360,5 +360,265 @@ Backward pass: Use backpropagation to compute gradients of the loss with respect
 Update weights: Apply the optimizer to adjust the model’s parameters based on the gradients.
 => This process is repeated over multiple epochs until the model converges or reaches satisfactory performance.
 
-c)
+c) Using the MSELoss
 
+For regression problems, you often use Mean Squared Error (MSE) as a loss function instead of cross-entropy. MSE calculates the squared difference between predicted values (y_pred) and actual values (y).
+
+y_pred = np.array([3, 5.0, 2.5, 7.0]) 
+y = np.array([3.0, 4.5, 2.0, 8.0])   
+
+# Calculate MSE using NumPy
+mse_numpy = np.mean((y_pred - y)**2)
+
+# Create the MSELoss function in PyTorch
+criterion = nn.MSELoss()
+
+# Calculate MSE using PyTorch
+mse_pytorch = criterion(torch.tensor(y_pred), torch.tensor(y))
+
+print("MSE (NumPy):", mse_numpy)
+print("MSE (PyTorch):", mse_pytorch)
+=> Output: <script.py> output:
+    MSE (NumPy): 0.375
+    MSE (PyTorch): tensor(0.3750, dtype=torch.float64)
+
+d) Writing a training loop
+
+# Loop over the number of epochs and the dataloader
+for i in range(num_epochs):
+  for data in dataloader:
+    # Set the gradients to zero
+    optimizer.zero_grad()  
+    # Run a forward pass
+    feature, target = data
+    prediction = model(feature)    
+    # Compute the loss
+    loss = criterion(prediction, target)    
+    # Compute the gradients
+    loss.backward()
+    # Update the model's parameters
+    optimizer.step()
+show_results(model, dataloader)
+
+=> Output: <script.py> output:
+    Ground truth salary: 0.195. Predicted salary: 0.098.
+    Ground truth salary: 0.061. Predicted salary: 0.114.
+    Ground truth salary: 0.278. Predicted salary: 0.072.
+    Ground truth salary: 0.083. Predicted salary: 0.108.
+    Ground truth salary: 0.205. Predicted salary: 0.072.
+    Ground truth salary: 0.040. Predicted salary: 0.072.
+    Ground truth salary: 0.114. Predicted salary: 0.077.
+    Ground truth salary: 0.147. Predicted salary: 0.087.
+    Ground truth salary: 0.055. Predicted salary: 0.087.
+    Ground truth salary: 0.151. Predicted salary: 0.072.
+    Ground truth salary: 0.151. Predicted salary: 0.072.
+    Ground truth salary: 0.188. Predicted salary: 0.072.
+
+e) Implementing ReLU
+
+The Rectified Linear Unit (ReLU) is a widely-used activation function in deep learning, solving challenges like the vanishing gradients problem.
+ReLU: POSITIVE inputs - output = input; NEGATIVE inputs - output is 0 
+Leaky ReLU: POSITIVE inputs - output = input; NEGATIVE inputs - scaled by small coefficient (0.01 default)
+
+# Create a ReLU function with PyTorch
+relu_pytorch = nn.ReLU()
+
+x_pos = torch.tensor(2.0)
+x_neg = torch.tensor(-3.0)
+
+# Apply the ReLU function to the tensors
+output_pos = relu_pytorch(x_pos)
+output_neg = relu_pytorch(x_neg)
+
+print("ReLU applied to positive value:", output_pos)
+print("ReLU applied to negative value:", output_neg)
+
+=> Output: <script.py> output:
+    ReLU applied to positive value: tensor(2.)
+    ReLU applied to negative value: tensor(0.)
+
+f) Implementing leaky ReLU
+
+While ReLU is widely used, it sets negative inputs to 0, resulting in null gradients for those values. This can prevent parts of the model from learning. Leaky ReLU overcomes this by allowing small gradients for negative inputs, controlled by the negative_slope parameter. Instead of 0, negative inputs are scaled by this small value, keeping the model's learning active.
+
+# Create a leaky relu function in PyTorch
+leaky_relu_pytorch = nn.LeakyReLU(negative_slope=0.05)
+
+x = torch.tensor(-2.0)
+# Call the above function on the tensor x
+output = leaky_relu_pytorch(x)
+print(output)
+=> Output: <script.py> output:
+    tensor(-0.1000)
+
+*** Learning Rate
+Controls the step size in weight updates.
+If too high → causes poor performance (overshooting optimal values).
+If too low → leads to slow training (takes longer to converge).
+Typical range: 0.01 and 0.0001
+
+*** Momentum
+Controls the inertia of the optimizer’s updates.
+Helps escape local minima by carrying forward movement from previous steps.
+If too small → optimizer can get stuck.
+Typical range: 0.85 to 0.99
+Keeps step size large when previous steps were also large, even if the current gradient is small.
+
+g) Experimenting with learning rate
+
+In this exercise, your goal is to find the optimal learning rate such that the optimizer can find the minimum of the non-convex function x^4 + x^3 - 5x^2 in ten steps. You will experiment with three different learning rate values between 0.001 to 0.1.
+
+# Try a first learning rate value
+lr0 = 0.005
+optimize_and_plot(lr=lr0)
+# Try a second learning rate value
+lr1 = 0.1
+optimize_and_plot(lr=lr1)
+# Try a third learning rate value
+lr2 = 0.09
+optimize_and_plot(lr=lr2)
+=>  A learning rate around 0.09 gets you closest to the global minimum.
+
+h) Experimenting with momentum
+
+In this exercise, your goal is to find the optimal momentum such that the optimizer can find the minimum of the following non-convex function x^4 + x^3 - 5x^2 in 20 steps. You will experiment with two different momentum value, with the learning rate is fixed at 0.01.
+
+# Try a first value for momentum
+mom0 = 0.85
+optimize_and_plot(momentum=mom0)
+# Try a second value for momentum
+mom1 = 0.95
+optimize_and_plot(momentum=mom1)
+=> Momentum and learning rate are critical to the training of your neural network. A good rule of thumb is to start with a learning rate of 0.001 and a momentum of 0.95.
+
+
+## CHAPTER 4: EVALUATING AND IMPROVING MODELS
+
+*** Fine-tuning process:
+Find a model trained on a similar task
+Load pre-trained weights
+Freeze (or not) some of the layers in the model
+Train with a smaller learning rate
+Look at the loss values and see if the learning rate needs to be adjusted
+
+a) Freeze layers of a model
+
+You are about to fine-tune a model on a new task after loading pre-trained weights. The model contains three linear layers. However, because your dataset is small, you only want to train the last linear layer of this model and freeze the first two linear layers.
+
+for name, param in model.named_parameters():
+  
+    # Check for first layer's weight
+    if name == '0.weight':
+   
+        # Freeze this weight
+        param.requires_grad = False
+        
+    # Check for second layer's weight
+    if name == '1.weight':
+      
+        # Freeze this weight
+        param.requires_grad = False
+
+b) Layer initialization
+
+The initialization of the weights of a neural network has been the focus of researchers for many years. When training a network, the method used to initialize the weights has a direct impact on the final performance of the network.
+
+layer0 = nn.Linear(16, 32)
+layer1 = nn.Linear(32, 64)
+
+# Use uniform initialization for layer0 and layer1 weights
+nn.init.uniform_(layer0.weight)
+nn.init.uniform_(layer1.weight)
+
+model = nn.Sequential(layer0, layer1)
+
+c) Writing the evaluation loop
+
+# Set the model to evaluation mode
+model.eval()
+validation_loss = 0.0
+
+with torch.no_grad():
+  for features, labels in validationloader:
+      outputs = model(features)
+      loss = criterion(outputs, labels)
+      # Sum the current loss to the validation_loss variable
+      validation_loss += loss.item()
+      
+# Calculate the mean loss value
+validation_loss_epoch = validation_loss / len(validationloader)
+print(validation_loss_epoch)
+
+# Set the model back to training mode
+model.train()
+=> Output: <script.py> output:
+    0.904186356605755
+
+d) Calculating accuracy using torchmetrics
+
+# Create accuracy metric
+metric = torchmetrics.Accuracy(task="multiclass", num_classes=3)
+for features, labels in dataloader:
+    outputs = model(features)
+    
+    # Calculate accuracy over the batch
+    metric.update(outputs, labels.argmax(dim=-1))
+    
+# Calculate accuracy over the whole epoch
+accuracy = metric.compute()
+print(f"Accuracy on all data: {accuracy}")
+
+# Reset metric for the next epoch
+metric.reset()
+plot_errors(model, dataloader)              
+=> Output: <script.py> output:
+    Accuracy on all data: 0.6901408433914185
+
+e) Experimenting with dropout
+Dropout helps prevent overfitting by randomly setting some output values to zero during training. 
+
+# Model with Dropout
+model = nn.Sequential(
+    nn.Linear(8, 6),
+    nn.Linear(6, 4),
+    nn.Dropout(p=0.5))
+
+# Forward pass in training mode (Dropout active)
+model.train()
+output_train = model(features)
+
+# Forward pass in evaluation mode (Dropout disabled)
+model.eval()
+output_eval = model(features)
+
+# Print results
+print("Output in train mode:", output_train)
+print("Output in eval mode:", output_eval)
+=> Output: <script.py> output:
+    Output in train mode: tensor([[0.3335, 0.0000, 0.0000, -0.0000]], grad_fn=<MulBackward0>)
+    Output in eval mode: tensor([[ 0.1667,  0.8695,  0.8360, -0.6130]], grad_fn=<AddmmBackward0>)
+
+*** Maximizing performance
+* Initial Checks
+Determine if the problem can be solved.
+Set a performance baseline.
+Aim to improve performance on the validation set.
+* Steps to Maximize Performance
+Overfit the training set – ensure the model can learn patterns from training data.
+Reduce overfitting – improve generalization to unseen data.
+Fine-tune hyperparameters – adjust settings for optimal performance.
+
+f) Implementing random search
+
+values = []
+for idx in range(10):
+    # Randomly sample a learning rate factor 2 and 4
+    factor = np.random.uniform(2, 4)
+    lr = 10 ** -factor
+    
+    # Randomly sample a momentum between 0.85 and 0.99
+    momentum = np.random.uniform(0.85, 0.99)
+    
+    values.append((lr, momentum))
+    
+plot_hyperparameter_search(values)
