@@ -1,5 +1,203 @@
 CHAPTER 1: TRAINING ROBUST NEURAL NETWORKS
 
-a)
+a) PyTorch Dataset
 
+Let's start with building a PyTorch Dataset for our water potability data. In this exercise, you will define a class called WaterDataset to load the data from a CSV file. To do this, you will need to implement the three methods which PyTorch expects a Dataset to have:
+.__init__() to load the data,
+.__len__() to return data size,
+.__getitem()__ to extract features and label for a single sample.
+
+The following imports that you need have already been done for you:
+import pandas as pd
+from torch.utils.data import Dataset
+
+class WaterDataset(Dataset):
+    def __init__(self, csv_path):
+        super().__init__()
+        # Load data to pandas DataFrame
+        df = pd.read_csv(csv_path)
+        # Convert data to a NumPy array and assign to self.data
+        self.data = df.to_numpy()
+        
+    # Implement __len__ to return the number of data samples
+    def __len__(self):
+        return self.data.shape[0]
+    
+    def __getitem__(self, idx):
+        features = self.data[idx, :-1]
+        # Assign last data column to label
+        label = self.data[idx, -1]
+        return features, label
+
+b) PyTorch DataLoader
+
+A PyTorch DataLoader can be created from a Dataset to load data, split it into batches, and perform transformations on the data if desired. Then, it yields a data sample ready for training.
+
+# Create an instance of the WaterDataset
+dataset_train = WaterDataset("water_train.csv")
+
+# Create a DataLoader based on dataset_train
+dataloader_train = DataLoader(
+    dataset_train,
+    batch_size=2,
+    shuffle=True,
+)
+
+# Get a batch of features and labels
+features, labels = next(iter(dataloader_train))
+print(features, labels)
+=> Output: <script.py> output:
+    tensor([[0.4174, 0.7606, 0.4798, 0.5332, 0.7234, 0.5664, 0.4054, 0.6402, 0.3062],
+            [0.4875, 0.4401, 0.2691, 0.4899, 0.5582, 0.5062, 0.7297, 0.4587, 0.5410]],
+           dtype=torch.float64) tensor([0., 1.], dtype=torch.float64)
+
+c) PyTorch Model
+
+You will use the OOP approach to define the model architecture. Recall that this requires setting up a model class and defining two methods inside it:
+.__init__(), in which you define the layers you want to use;
+forward(), in which you define what happens to the model inputs once it receives them; this is where you pass inputs through pre-defined layers.
+
+Let's build a model with three linear layers and ReLU activations. After the last linear layer, you need a sigmoid activation instead, which is well-suited for binary classification tasks like our water potability prediction problem.
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Define the three linear layers
+        self.fc1 = nn.Linear(9, 16)
+        self.fc2 = nn.Linear(16, 8)
+        self.fc3 = nn.Linear(8, 1)
+        
+    def forward(self, x):
+        # Pass x through linear layers adding activations
+        x = nn.functional.relu(self.fc1(x))
+        x = nn.functional.relu(self.fc2(x))
+        x = nn.functional.sigmoid(self.fc3(x))
+        return x
+
+d) Optimizers
+
+import torch.optim as optim
+
+net = Net()
+
+# Define the SGD optimizer
+optimizer = optim.SGD(net.parameters(), lr=0.001)
+
+train_model(
+    optimizer=optimizer,
+    net=net,
+    num_epochs=10,
+)
+=> Output: <script.py> output:
+    Training loss after 10 epochs: 0.6978952204955478
+
+# Define the RMSprop optimizer
+optimizer = optim.RMSprop(net.parameters(), lr=0.001)
+
+train_model(
+    optimizer=optimizer,
+    net=net,
+    num_epochs=10,
+)
+=> Output: <script.py> output:
+    Training loss after 10 epochs: 0.6750381543207793
+
+# Define the Adam optimizer
+optimizer = optim.Adam(net.parameters(), lr=0.001)
+
+train_model(
+    optimizer=optimizer,
+    net=net,
+    num_epochs=10,
+)
+=> Output: <script.py> output:
+    Training loss after 10 epochs: 0.6752067131833709
+
+Model training has some randomness to it and each time you get slightly different results, but it's very likely that you saw RMSprop and Adam decreasing the loss more than a simple SGD even after just 10 training epochs.
+
+e) Model evaluation
+
+import torch
+from torchmetrics import Accuracy
+
+# Set up binary accuracy metric
+acc = Accuracy(task="binary")
+
+net.eval()
+with torch.no_grad():
+    for features, labels in dataloader_test:
+        # Get predicted probabilities for test data batch
+        outputs = net(features)
+        preds = (outputs >= 0.5).float()
+        acc(preds, labels.view(-1, 1))
+
+# Compute total test accuracy
+test_accuracy = acc.compute()
+print(f"Test accuracy: {test_accuracy}")
+=> Output: <script.py> output:
+    Test accuracy: 0.749502956867218
+
+f) Initialization and activation
+
+The problems of unstable (vanishing or exploding) gradients are a challenge that often arises in training deep neural networks. In this and the following exercises, you will expand the model architecture that you built for the water potability classification task to make it more immune to those problems. As a first step, you'll improve the weights initialization by using He (Kaiming) initialization strategy. To do so, you will need to call the proper initializer from the torch.nn.init module, which has been imported for you as init. Next, you will update the activations functions from the default ReLU to the often better ELU.
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(9, 16)
+        self.fc2 = nn.Linear(16, 8)
+        self.fc3 = nn.Linear(8, 1)
+        
+        # Apply He initialization
+        init.kaiming_uniform_(self.fc1.weight)
+        init.kaiming_uniform_(self.fc2.weight)
+        init.kaiming_uniform_(self.fc3.weight, nonlinearity="sigmoid")
+
+    def forward(self, x):
+        # Update ReLU activation to ELU
+        x = nn.functional.elu(self.fc1(x))
+        x = nn.functional.elu(self.fc2(x))
+        x = nn.functional.sigmoid(self.fc3(x))
+        return x
+
+g) Batch Normalization
+
+As a final improvement to the model architecture, let's add the batch normalization layer after each of the two linear layers. The batch norm trick tends to accelerate training convergence and protects the model from vanishing and exploding gradients issues.
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(9, 16)
+        # Add two batch normalization layers
+        self.bn1 = nn.BatchNorm1d(16)
+        self.fc2 = nn.Linear(16, 8)
+        self.bn2 = nn.BatchNorm1d(8)
+        self.fc3 = nn.Linear(8, 1)
+        
+        init.kaiming_uniform_(self.fc1.weight)
+        init.kaiming_uniform_(self.fc2.weight)
+        init.kaiming_uniform_(self.fc3.weight, nonlinearity="sigmoid")
+    
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.bn1(x)
+        x = nn.functional.elu(x)
+		
+        # Pass x through the second set of layers
+        x = self.fc2(x)
+        x = self.bn2(x)
+        x = nn.functional.elu(x)
+
+        x = nn.functional.sigmoid(self.fc3(x))
+        return x
+
+=> By learning how to optimally re-scale the next layer's inputs, batch normalization mitigates the unstable gradients problems!
+
+
+CHAPTER 2: IMAGES & CONVOLUTIONAL NEURAL NETWORKS
+
+a)
 
