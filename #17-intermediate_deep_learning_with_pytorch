@@ -421,3 +421,346 @@ print(precision_per_class)
 
 CHAPTER 3: SEQUENCES & RECURRENT NEURAL NETWORKS
 
+a) Generating sequences
+
+To be able to train neural networks on sequential data, you need to pre-process it first. You'll chunk the data into inputs-target pairs, where the inputs are some number of consecutive data points and the target is the next data point. Your task is to define a function to do this called create_sequences(). As inputs, it will receive data stored in a DataFrame, df and seq_length, the length of the inputs. As outputs, it should return two NumPy arrays, one with input sequences and the other one with the corresponding targets.
+
+                 timestamp  consumption
+0      2011-01-01 00:15:00    -0.704319
+...                    ...          ...
+140255 2015-01-01 00:00:00    -0.095751
+
+import numpy as np
+
+def create_sequences(df, seq_length):
+    xs, ys = [], []
+    # Iterate over data indices
+    for i in range(len(df) - seq_length):
+      	# Define inputs
+        x = df.iloc[i:(i+seq_length), 1]
+        # Define target
+        y = df.iloc[i+seq_length, 1]
+        xs.append(x)
+        ys.append(y)
+    return np.array(xs), np.array(ys)
+
+b) Sequential Dataset
+
+import torch
+from torch.utils.data import TensorDataset
+
+# Use create_sequences to create inputs and targets
+X_train, y_train = create_sequences(train_data, 24*4)
+print(X_train.shape, y_train.shape)
+
+# Create TensorDataset
+dataset_train = TensorDataset(
+    torch.from_numpy(X_train).float(),
+    torch.from_numpy(y_train).float(),
+)
+print(len(dataset_train))
+=> Output: <script.py> output:
+    (105119, 96) (105119,)
+    105119
+As you can see from the printed output, we have 105119 training examples, each consisting of 96 inputs and 1 target value. The TensorDataset you have just built behaves the same way as other Torch Datasets you have used before, such us our custom WaterDataset or the ImageFolder dataset; you can pass it to a DataLoader in the same way.
+
+c) Building a forecasting RNN
+
+NOTE: Sequential Architectures
+- Sequence → Vector: The model takes a sequence as input and outputs a single value or label. Example tasks: sentiment classification (positive/negative) or time-series prediction (predict tomorrow from the last 30 days).
+- Vector → Sequence: The model takes a single vector as input and produces a sequence as output. Example tasks: image captioning (image → words) or text generation (vector representing a topic → generated text).
+- Encoder–Decoder (Sequence → Sequence): The model takes a sequence as input and produces another sequence as output (often with different length). Example tasks: machine translation (English → French) or speech recognition with smart assistants (device listens, then outputs text/response).
+
+
+It's time to build your first recurrent network! It will be a sequence-to-vector model consisting of an RNN layer with two layers and a hidden_size of 32. After the RNN layer, a simple linear layer will map the outputs to a single value to be predicted.
+
+The following imports have already been done for you:
+import torch
+import torch.nn as nn
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Define RNN layer
+        self.rnn = nn.RNN(
+            input_size=1,
+            hidden_size=32,
+            num_layers=2,
+            batch_first=True,
+        )
+        self.fc = nn.Linear(32, 1)
+
+    def forward(self, x):
+        # Initialize first hidden state with zeros
+        h0 = torch.zeros(2, x.size(0), 32)
+        # Pass x and h0 through recurrent layer
+        out, _ = self.rnn(x, h0)  
+        # Pass recurrent layer's last output through linear layer
+        out = self.fc(out[:, -1, :])
+        return out
+
+NOTE: Understanding the differences between a plain RNN, LSTM, and GRU networks, including their complexity and computation needs, allows you to choose the appropriate one for your task.
+Which of the following statements about the different types of recurrent neural networks are correct? LSTM cells keep two hidden states: one for short-term memory and one for long-term memory. In both LSTM and GRU cells, the hidden state is not only passed as input to the next time step, but also returned at the current time step (that is, "y" and "h" are the same).
+
+d) LSTM network
+
+As you already know, plain RNN cells are not used that much in practice. A more frequently used alternative that ensures a much better handling of long sequences are Long Short-Term Memory cells, or LSTMs. The most important implementation difference from the RNN network you have built previously comes from the fact that LSTMs have two rather than one hidden states. This means you will need to initialize this additional hidden state and pass it to the LSTM cell.
+
+class Net(nn.Module):
+    def __init__(self, input_size):
+        super().__init__()
+        # Define lstm layer
+        self.lstm = nn.LSTM(
+            input_size=1,
+            hidden_size=32,
+            num_layers=2,
+            batch_first=True,
+        )
+        self.fc = nn.Linear(32, 1)
+
+    def forward(self, x):
+        h0 = torch.zeros(2, x.size(0), 32)
+        # Initialize long-term memory
+        c0 = torch.zeros(2, x.size(0), 32)
+        # Pass all inputs to lstm layer
+        out, _ = self.lstm(x, (h0, c0))
+        out = self.fc(out[:, -1, :])
+        return out
+
+e) GRU network
+
+Another popular recurrent neural network variant is the Gated Recurrent Unit, or GRU. It's appeal is in its simplicity: GRU cells require less computation than LSTM cells while often matching them in performance.
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Define RNN layer
+        self.gru = nn.GRU(
+            input_size=1,
+            hidden_size=32,
+            num_layers=2,
+            batch_first=True,
+        )
+        self.fc = nn.Linear(32, 1)
+
+    def forward(self, x):
+        h0 = torch.zeros(2, x.size(0), 32)
+        out, _ = self.gru(x, h0)  
+        out = self.fc(out[:, -1, :])
+        return out
+
+f) RNN training loop
+
+You will use the LSTM network you have defined previously, which has been instantiated and assigned to net, as is the dataloader_train you built before. You will also need to use torch.nn which has already been imported as nn.
+
+net = Net()
+# Set up MSE loss
+criterion = nn.MSELoss()
+optimizer = optim.Adam(
+  net.parameters(), lr=0.0001
+)
+
+for epoch in range(3):
+    for seqs, labels in dataloader_train:
+        # Reshape model inputs
+        seqs = seqs.view(32, 96, 1)
+        # Get model outputs
+        outputs = net(seqs)
+        # Compute loss
+        loss = criterion(outputs, labels)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    print(f"Epoch {epoch+1}, Loss: {loss.item()}")
+
+=> Output: <script.py> output:
+    Epoch 1, Loss: 0.5901679992675781
+    Epoch 2, Loss: 0.5991288423538208
+    Epoch 3, Loss: 0.6175174117088318
+
+g) Evaluating forecasting models
+
+# Define MSE metric
+mse = torchmetrics.MeanSquaredError()
+
+net.eval()
+with torch.no_grad():
+    for seqs, labels in dataloader_test:
+        seqs = seqs.view(32, 96, 1)
+        # Pass seqs to net and squeeze the result
+        outputs = net(seqs).squeeze()
+        mse(outputs, labels)
+
+# Compute final metric value
+test_mse = mse.compute()
+print(f"Test MSE: {test_mse}")
+=> Output: <script.py> output:
+    Test MSE: 0.13292160630226135
+
+
+CHAPTER 4: MULTI-INPUT & MULTI-OUTPUT ARCHITECTURES
+
+a) Two-input dataset
+
+Building a multi-input model starts with crafting a custom dataset that can supply all the inputs to the model. In this exercise, you will build the Omniglot dataset that serves triplets consisting of:
+
+The image of a character to be classified,
+The one-hot encoded alphabet vector of length 30, with zeros everywhere but for a single one denoting the ID of the alphabet the character comes from,
+The target label, an integer between 0 and 963.
+You are provided with samples, a list of 3-tuples comprising an image's file path, its alphabet vector, and the target label. Also, the following imports have already been done for you, so let's get to it!
+
+from PIL import Image
+from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
+
+class OmniglotDataset(Dataset):
+    def __init__(self, transform, samples):
+		# Assign transform and samples to class attributes
+        self.transform = transform
+        self.samples = samples
+                    
+    def __len__(self):
+		# Return number of samples
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        # Unpack the sample at index idx
+        img_path, alphabet, label = self.samples[idx]
+        img = Image.open(img_path).convert('L')
+        # Transform the image 
+        img_transformed = self.transform(img)
+        return img_transformed, alphabet, label
+
+b) Two-input model
+
+With the data ready, it's time to build the two-input model architecture! To do so, you will set up a model class with the following methods:
+
+.__init__(), in which you will define sub-networks by grouping layers; this is where you define the two layers for processing the two inputs, and the classifier that returns a classification score for each class.
+
+forward(), in which you will pass both inputs through corresponding pre-defined sub-networks, concatenate the outputs, and pass them to the classifier.
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Define sub-networks as sequential models
+        self.image_layer = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, padding=1),
+            nn.MaxPool2d(kernel_size=2),
+            nn.ELU(),
+            nn.Flatten(),
+            nn.Linear(16*32*32, 128)
+        )
+        self.alphabet_layer = nn.Sequential(
+            nn.Linear(30, 8),
+            nn.ELU(), 
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(128 + 8, 964), 
+        )
+        
+    def forward(self, x_image, x_alphabet):
+		# Pass the x_image and x_alphabet through appropriate layers
+        x_image = self.image_layer(x_image)
+        x_alphabet = self.alphabet_layer(x_alphabet)
+        # Concatenate x_image and x_alphabet
+        x = torch.cat((x_image, x_alphabet), dim=1)
+        return self.classifier(x)
+
+c) Two-output Dataset and DataLoader
+
+In this and the following exercises, you will build a two-output model to predict both the character and the alphabet it comes from based on the character's image. As always, you will start with getting the data ready. The OmniglotDataset class you have created before is available for you to use along with updated samples. Let's use it to build the Dataset and the DataLoader.
+
+The following imports have already been done for you:
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+
+# Print the sample at index 100
+print(samples[100])
+
+# Create dataset_train
+dataset_train = OmniglotDataset(
+    transform=transforms.Compose([
+        transforms.ToTensor(),
+      	transforms.Resize((64, 64)),
+    ]),
+    samples=samples,
+)
+
+# Create dataloader_train
+dataloader_train = DataLoader(
+    dataset_train, shuffle=True, batch_size=32,
+)
+=> Output: <script.py> output:
+    ('omniglot_train/Gujarati/character26/0443_16.png', 0, 10)
+
+d) Two-output model architecture
+
+In this exercise, you will construct a multi-output neural network architecture capable of predicting the character and the alphabet. Recall the general structure: in the .__init__() method, you define layers to be used in the forward pass later. In the forward() method, you will first pass the input image through a couple of layers to obtain its embedding, which in turn is fed into two separate classifier layers, one for each output.
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.image_layer = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, padding=1),
+            nn.MaxPool2d(kernel_size=2),
+            nn.ELU(),
+            nn.Flatten(),
+            nn.Linear(16*32*32, 128)
+        )
+        # Define the two classifier layers
+        self.classifier_alpha = nn.Linear(128, 30)
+        self.classifier_char = nn.Linear(128, 964)
+        
+    def forward(self, x):
+        x_image = self.image_layer(x)
+        # Pass x_image through the classifiers and return both results
+        output_alpha = self.classifier_alpha(x_image)
+        output_char = self.classifier_char(x_image)
+        return output_alpha, output_char
+
+e) Training multi-output models
+
+In this case, the model produces two outputs: predictions for the alphabet and the character. For each of these, there are corresponding ground truth labels, which will allow you to calculate two separate losses: one incurred from incorrect alphabet classifications, and the other from incorrect character classification. Since in both cases you are dealing with a multi-label classification task, the Cross-Entropy loss can be applied each time. Gradient descent can optimize only one loss function, however. You will thus define the total loss as the sum of alphabet and character losses.
+
+net = Net()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(net.parameters(), lr=0.05)
+
+for epoch in range(1):
+    for images, labels_alpha, labels_char in dataloader_train:
+        optimizer.zero_grad()
+        outputs_alpha, outputs_char = net(images)
+        # Compute alphabet classification loss
+        loss_alpha = criterion(outputs_alpha, labels_alpha)
+        # Compute character classification loss
+        loss_char = criterion(outputs_char, labels_char)
+        # Compute total loss
+        loss = loss_alpha + loss_char
+        loss.backward()
+        optimizer.step()
+
+f) Multi-output model evaluation
+
+Your task is to write a function called evaluate_model() that takes an alphabet-and-character-predicting model as input, runs the evaluation loop, and prints the model's accuracy in the two tasks. You can assume that the function will have access to dataloader_test. The following imports have already been run for you:
+
+import torch
+from torchmetrics import Accuracy
+
+def evaluate_model(model):
+    # Define accuracy metrics
+    acc_alpha = Accuracy(task="multiclass", num_classes=30)
+    acc_char = Accuracy(task="multiclass", num_classes=964)
+
+    model.eval()
+    with torch.no_grad():
+        for images, labels_alpha, labels_char in dataloader_test:
+            # Obtain model outputs
+            outputs_alpha, outputs_char = model(images)
+            _, pred_alpha = torch.max(outputs_alpha, 1)
+            _, pred_char = torch.max(outputs_char, 1)
+			# Update both accuracy metrics
+            acc_alpha(pred_alpha, labels_alpha)
+            acc_char(pred_char, labels_char)
+    
+    print(f"Alphabet: {acc_alpha.compute()}")
+    print(f"Character: {acc_char.compute()}")
