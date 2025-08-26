@@ -199,5 +199,225 @@ class Net(nn.Module):
 
 CHAPTER 2: IMAGES & CONVOLUTIONAL NEURAL NETWORKS
 
-a)
+a) Image dataset
+
+Let's start with building a Torch Dataset of images. You'll use it to explore the data and, later, to feed it into a model. The training data for the cloud classification task is stored in the following directory structure:
+
+clouds_train
+  - cirriform clouds
+    - 539cd1c356e9c14749988a12fdf6c515.jpg
+    - ...
+  - clear sky
+  - cumulonimbus clouds
+  - cumulus clouds
+  - high cumuliform clouds
+  - stratiform clouds
+  - stratocumulus clouds
+There are seven folders inside clouds_train, each representing one cloud type (or a clear sky). Inside each of these folders sit corresponding image files.
+
+The following imports have already been done for you:
+
+from torchvision.datasets import ImageFolder
+from torchvision import transforms
+
+# Compose transformations
+train_transforms = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Resize((128, 128)),
+])
+
+# Create Dataset using ImageFolder
+dataset_train = ImageFolder(
+    "clouds_train",
+    transform=train_transforms,
+)
+
+b) Data augmentation in PyTorch
+
+Let's include data augmentation in your Dataset and inspect some images visually to make sure the desired transformations are applied. First, you'll add the augmenting transformations to train_transforms. Let's use a random horizontal flip and a rotation by a random angle between 0 and 45 degrees. The code that follows to create the Dataset and the DataLoader is exactly the same as before. Finally, you'll reshape the image and display it to see if the new augmenting transformations are visible.
+
+All the imports you need have been called for you:
+
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader
+from torchvision import transforms
+import matplotlib.pyplot as plt
+
+train_transforms = transforms.Compose([
+    # Add horizontal flip and rotation
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(45),
+    transforms.ToTensor(),
+    transforms.Resize((128, 128)),
+])
+
+dataset_train = ImageFolder(
+  "clouds_train",
+  transform=train_transforms,
+)
+
+dataloader_train = DataLoader(
+  dataset_train, shuffle=True, batch_size=1
+)
+
+image, label = next(iter(dataloader_train))
+# Reshape the image tensor
+image = image.squeeze().permute(1, 2, 0)
+# Display the image
+plt.imshow(image)
+plt.show()
+
+c) Building convolutional networks
+
+- Convolutional layers are the basic building block of most computer vision architectures. Understanding why they're used and how they work is crucial for building image-processing neural networks. Convolutional layers preserve spatial information between their inputs and outputs. Adding zero-padding around the convolutional layer's input ensures that the pixels at the border receive as much attention as those located elsewhere in the feature map. Convolutional layers in general use fewer parameters than linear layers.
+
+You are on a team building a weather forecasting system. As part of the system, cameras will be installed at various locations to take pictures of the sky. Your task is to build a model to classify different cloud types in these pictures, which will help spot approaching weather fronts.
+
+You decide to build a convolutional image classifier. The model will consist of two parts:
+
+A feature extractor that learns a vector of features from the input image,
+A classifier that predicts the image's class based on the learned features.
+
+class Net(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        # Define feature extractor
+        self.feature_extractor = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, padding=1),
+            nn.ELU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.ELU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Flatten(),
+        )
+        # Define classifier
+        self.classifier = nn.Linear(64*16*16, num_classes)
+    
+    def forward(self, x):  
+        # Pass input through feature extractor and classifier
+        x = self.feature_extractor(x)
+        x = self.classifier(x)
+        return x
+
+d) Dataset with augmentations
+
+You have already built the image dataset from cloud pictures and the convolutional model to classify different cloud types. Before you train it, let's adapt the dataset by adding the augmentations that could improve the model's cloud classification performance.
+
+# Define transforms
+train_transforms = transforms.Compose([
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(45),
+    transforms.RandomAutocontrast(),
+    transforms.ToTensor(),
+    transforms.Resize((64, 64)),
+])
+
+dataset_train = ImageFolder(
+  "clouds_train",
+  transform=train_transforms,
+)
+dataloader_train = DataLoader(
+  dataset_train, shuffle=True, batch_size=16
+)
+
+e) Image classifier training loop
+
+You will use the Net you defined earlier (2.c) and train it to distinguish between seven cloud types. To define the loss and optimizer, you will need to use functions from torch.nn and torch.optim, imported for you as nn and optim, respectively.
+
+# Define the model
+net = Net(num_classes=7)
+# Define the loss function
+criterion = nn.CrossEntropyLoss()
+# Define the optimizer
+optimizer = optim.Adam(net.parameters(), lr=0.001)
+
+for epoch in range(3):
+    running_loss = 0.0
+    # Iterate over training batches
+    for images, labels in dataloader_train:
+        optimizer.zero_grad()
+        outputs = net(images)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        running_loss += loss.item()
+    
+    epoch_loss = running_loss / len(dataloader_train)
+    print(f"Epoch {epoch+1}, Loss: {epoch_loss:.4f}")
+
+=> Output: <script.py> output:
+    Epoch 1, Loss: 1.9528
+    Epoch 2, Loss: 1.5274
+    Epoch 3, Loss: 1.3498
+
+f) Multi-class model evaluation
+
+Let's evaluate our cloud classifier with precision and recall to see how well it can classify the seven cloud types. In this multi-class classification task it is important how you average the scores over classes. Recall that there are four approaches:
+
+Not averaging, and analyzing the results per class;
+Micro-averaging, ignoring the classes and computing the metrics globally;
+Macro-averaging, computing metrics per class and averaging them;
+Weighted-averaging, just like macro but with the average weighted by class size.
+Both Precision and Recall are already imported from torchmetrics. It's time to see how well our model is doing!
+
+- Define precision and recall metrics calculated globally on all examples.
+# Define metrics
+metric_precision = Precision(task="multiclass", num_classes=7, average="micro")
+metric_recall = Recall(task="multiclass", num_classes=7, average="micro")
+
+net.eval()
+with torch.no_grad():
+    for images, labels in dataloader_test:
+        outputs = net(images)
+        _, preds = torch.max(outputs, 1)
+        metric_precision(preds, labels)
+        metric_recall(preds, labels)
+
+precision = metric_precision.compute()
+recall = metric_recall.compute()
+print(f"Precision: {precision}")
+print(f"Recall: {recall}")
+=> Output: <script.py> output:
+    Precision: 0.644032895565033
+    Recall: 0.644032895565033
+
+- Compute separate recall and precision metrics for each class and average them with a simple average.
+# Define metrics (CHANGE FROM micro -> macro)
+metric_precision = Precision(task="multiclass", num_classes=7, average="macro")
+metric_recall = Recall(task="multiclass", num_classes=7, average="macro")
+=> Output: <script.py> output:
+    Precision: 0.7189324498176575
+    Recall: 0.6806514263153076
+
+g) Analyzing metrics per class
+
+While aggregated metrics are useful indicators of the model's performance, it is often informative to look at the metrics per class. This could reveal classes for which the model underperforms. In this exercise, you will run the evaluation loop again to get our cloud classifier's precision, but this time per-class. Then, you will map these score to the class names to interpret them. As usual, Precision has already been imported for you. 
+
+# Define precision metric
+metric_precision = Precision(
+    task="multiclass", num_classes=7, average=None
+)
+
+net.eval()
+with torch.no_grad():
+    for images, labels in dataloader_test:
+        outputs = net(images)
+        _, preds = torch.max(outputs, 1)
+        metric_precision(preds, labels)
+precision = metric_precision.compute()
+
+# Get precision per class
+precision_per_class = {
+    k: precision[v].item()
+    for k, v 
+    in dataset_test.class_to_idx.items()
+}
+print(precision_per_class)
+=> Output: <script.py> output:
+    {'cirriform clouds': 0.699999988079071, 'clear sky': 0.9384615421295166, 'cumulonimbus clouds': 0.800000011920929, 'cumulus clouds': 0.5819672346115112, 'high cumuliform clouds': 0.474683552980423, 'stratiform clouds': 0.7755101919174194, 'stratocumulus clouds': 0.761904776096344}
+- It's not that surprising that the clear sky is the easiest to classify, but some cloud types are hard for the model to distinguish. Using larger images, more convolutional layers, and a classifier with more than one linear layer should improve the performance.
+
+
+CHAPTER 3: SEQUENCES & RECURRENT NEURAL NETWORKS
 
