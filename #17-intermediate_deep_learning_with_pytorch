@@ -764,3 +764,16 @@ def evaluate_model(model):
     
     print(f"Alphabet: {acc_alpha.compute()}")
     print(f"Character: {acc_char.compute()}")
+
+g) Loss weighting
+
+Three versions of the two-output model for alphabet and character prediction that you built before have been trained: model_a, model_b, and model_c. For all three, the loss was defined as follows:
+
+loss_alpha = criterion(outputs_alpha, labels_alpha)
+loss_char = criterion(outputs_char, labels_char)
+loss = ((1 - char_weight) * loss_alpha) + (char_weight * loss_char)
+However, each of the three models was trained with a different char_weight: 0.1, 0.5, or 0.9.
+
+Use the function you have defined in the previous exercise, evaluate_model(), to check the accuracy of each model. Which char_weight was used to train which model?
+Answer: a: 0.5; b: 0:1; c: 0.9
+Hint: The higher the char_weight, the better the model is expected to perform on character recognition and the worse on alphabet recognition.
