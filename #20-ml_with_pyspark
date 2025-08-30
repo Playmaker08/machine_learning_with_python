@@ -1,4 +1,1166 @@
 ## CHAPTER 1: INTRODUCTION
 
-a)
+Spark is currently the most popular technology for processing large quantities of data. Not only is it able to handle enormous data volumes, but it does so very efficiently too! Also, unlike some other distributed computing technologies, developing with Spark is a pleasure. Spark is a framework for cluster computing, does most processing in memory, and has a high-level API, which conceals a lot of complexity. Spark is a distributed computing platform. It achieves efficiency by distributing data and computation across a cluster of computers. A Spark cluster consists of a number of hardware and software components which work together.
 
+a) Creating a SparkSession
+
+The SparkSession class has a builder attribute, which is an instance of the Builder class. The Builder class exposes three important methods that let you:
+specify the location of the master node;
+name the application (optional); and
+retrieve an existing SparkSession or, if there is none, create a new one.
+The SparkSession class has a version attribute which gives the version of Spark. Note: The version can also be accessed via the __version__ attribute on the pyspark module.
+
+# Import the SparkSession class
+from pyspark.sql import SparkSession
+
+# Create SparkSession object
+spark = SparkSession.builder \
+                    .master('local[*]') \
+                    .appName('test') \
+                    .getOrCreate()
+
+# What version of Spark?
+print(spark.version)
+
+# Terminate the cluster
+spark.stop()
+=> Output: <script.py> output:
+    3.2.0
+
+b) Loading flights data
+
+First few records from 'flights.csv':
+
+mon,dom,dow,carrier,flight,org,mile,depart,duration,delay
+11,20,6,US,19,JFK,2153,9.48,351,NA
+0,22,2,UA,1107,ORD,316,16.33,82,30
+2,20,4,UA,226,SFO,337,6.17,82,-8
+9,13,1,AA,419,ORD,1236,10.33,195,-5
+4,2,5,AA,325,ORD,258,8.92,65,NA
+
+# Read data from CSV file
+flights = spark.read.csv('flights.csv',
+                         sep=',',
+                         header=True,
+                         inferSchema=True,
+                         nullValue='NA')
+
+# Get number of records
+print("The data contain %d records." % flights.count())
+
+# View the first five records
+flights.show(5)
+
+# Check column data types
+print(flights.dtypes)
+=> Output: <script.py> output:
+    The data contain 50000 records.
+    +---+---+---+-------+------+---+----+------+--------+-----+
+    |mon|dom|dow|carrier|flight|org|mile|depart|duration|delay|
+    +---+---+---+-------+------+---+----+------+--------+-----+
+    | 11| 20|  6|     US|    19|JFK|2153|  9.48|     351| null|
+    |  0| 22|  2|     UA|  1107|ORD| 316| 16.33|      82|   30|
+    |  2| 20|  4|     UA|   226|SFO| 337|  6.17|      82|   -8|
+    |  9| 13|  1|     AA|   419|ORD|1236| 10.33|     195|   -5|
+    |  4|  2|  5|     AA|   325|ORD| 258|  8.92|      65| null|
+    +---+---+---+-------+------+---+----+------+--------+-----+
+    only showing top 5 rows
+    
+    [('mon', 'int'), ('dom', 'int'), ('dow', 'int'), ('carrier', 'string'), ('flight', 'int'), ('org', 'string'), ('mile', 'int'), ('depart', 'double'), ('duration', 'int'), ('delay', 'int')]
+
+c) Loading SMS spam data
+
+First few records from 'sms.csv':
+
+1;Sorry, I'll call later in meeting;0
+2;Dont worry. I guess he's busy.;0
+3;Call FREEPHONE 0800 542 0578 now!;1
+4;Win a 1000 cash prize or a prize worth 5000;1
+
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+
+# Specify column names and types
+schema = StructType([
+    StructField("id", IntegerType()),
+    StructField("text", StringType()),
+    StructField("label", IntegerType())
+])
+
+# Load data from a delimited file
+sms = spark.read.csv("sms.csv", sep=';', header=False, schema=schema)
+
+# Print schema of DataFrame
+sms.printSchema()
+=> Output: <script.py> output:
+    root
+     |-- id: integer (nullable = true)
+     |-- text: string (nullable = true)
+     |-- label: integer (nullable = true)
+
+
+## CHAPTER 2: CLASSIFICATION
+
+a) Removing columns and rows
+
+You previously loaded airline flight data from a CSV file. You're going to develop a model which will predict whether or not a given flight will be delayed.
+
+In this exercise you need to trim those data down by:
+removing an uninformative column and
+removing rows which do not have information about whether or not a flight was delayed.
+
+# Remove the 'flight' column
+flights_drop_column = flights.drop('flight')
+
+# Number of records with missing 'delay' values
+flights_drop_column.filter('delay IS NULL').count()
+
+# Remove records with missing 'delay' values
+flights_valid_delay = flights_drop_column.filter('delay IS NOT NULL')
+
+# Remove records with missing values in any column and get the number of remaining rows
+flights_none_missing = flights_valid_delay.dropna()
+print(flights_none_missing.count())
+=> Output: <script.py> output:
+    47022
+
+b) Column manipulation
+
+The Federal Aviation Administration (FAA) considers a flight to be "delayed" when it arrives 15 minutes or more after its scheduled time.
+
+The next step of preparing the flight data has two parts:
+convert the units of distance, replacing the mile column with a kmcolumn; and
+create a Boolean column indicating whether or not a flight was delayed.
+
+# Import the required function
+from pyspark.sql.functions import round
+
+# Convert 'mile' to 'km' and drop 'mile' column (1 mile is equivalent to 1.60934 km)
+flights_km = flights.withColumn('km', round(flights.mile * 1.60934, 0)) \
+                    .drop('mile')
+
+# Create 'label' column indicating whether flight delayed (1) or not (0)
+flights_km = flights_km.withColumn('label', (flights_km.delay >= 15).cast('integer'))
+
+# Check first five records
+flights_km.show(5)
+=> Output: <script.py> output:
+    +---+---+---+-------+---+------+--------+-----+------+-----+
+    |mon|dom|dow|carrier|org|depart|duration|delay|    km|label|
+    +---+---+---+-------+---+------+--------+-----+------+-----+
+    |  0| 22|  2|     UA|ORD| 16.33|      82|   30| 509.0|    1|
+    |  2| 20|  4|     UA|SFO|  6.17|      82|   -8| 542.0|    0|
+    |  9| 13|  1|     AA|ORD| 10.33|     195|   -5|1989.0|    0|
+    |  5|  2|  1|     UA|SFO|  7.98|     102|    2| 885.0|    0|
+    |  7|  2|  6|     AA|ORD| 10.83|     135|   54|1180.0|    1|
+    +---+---+---+-------+---+------+--------+-----+------+-----+
+    only showing top 5 rows
+
+c) Categorical columns
+
+In the flights data there are two columns, carrier and org, which hold categorical data. You need to transform those columns into indexed numerical values.
+
+from pyspark.ml.feature import StringIndexer
+
+# Create an indexer
+indexer = StringIndexer(inputCol='carrier', outputCol='carrier_idx')
+
+# Indexer identifies categories in the data
+indexer_model = indexer.fit(flights)
+
+# Indexer creates a new column with numeric index values
+flights_indexed = indexer_model.transform(flights)
+
+# Repeat the process for the other categorical feature
+flights_indexed = StringIndexer(inputCol='org', outputCol='org_idx').fit(flights_indexed).transform(flights_indexed)
+flights_indexed.show(5)
+=> Output: <script.py> output:
+    +---+---+---+-------+---+------+--------+-----+------+-----+-----------+-------+
+    |mon|dom|dow|carrier|org|depart|duration|delay|    km|label|carrier_idx|org_idx|
+    +---+---+---+-------+---+------+--------+-----+------+-----+-----------+-------+
+    |  0| 22|  2|     UA|ORD| 16.33|      82|   30| 509.0|    1|        0.0|    0.0|
+    |  2| 20|  4|     UA|SFO|  6.17|      82|   -8| 542.0|    0|        0.0|    1.0|
+    |  9| 13|  1|     AA|ORD| 10.33|     195|   -5|1989.0|    0|        1.0|    0.0|
+    |  5|  2|  1|     UA|SFO|  7.98|     102|    2| 885.0|    0|        0.0|    1.0|
+    |  7|  2|  6|     AA|ORD| 10.83|     135|   54|1180.0|    1|        1.0|    0.0|
+    +---+---+---+-------+---+------+--------+-----+------+-----+-----------+-------+
+    only showing top 5 rows
+
+d) Assembling columns
+
+# Import the necessary class
+from pyspark.ml.feature import VectorAssembler
+
+# Create an assembler object
+assembler = VectorAssembler(inputCols=[
+    'mon', 'dom', 'dow', 'carrier_idx', 'org_idx', 'km', 'depart', 'duration'
+], outputCol='features')
+
+# Consolidate predictor columns
+flights_assembled = assembler.transform(flights)
+
+# Check the resulting column
+flights_assembled.select('features', 'delay').show(5, truncate=False)
+=> Output: <script.py> output:
+    +-----------------------------------------+-----+
+    |features                                 |delay|
+    +-----------------------------------------+-----+
+    |[0.0,22.0,2.0,0.0,0.0,509.0,16.33,82.0]  |30   |
+    |[2.0,20.0,4.0,0.0,1.0,542.0,6.17,82.0]   |-8   |
+    |[9.0,13.0,1.0,1.0,0.0,1989.0,10.33,195.0]|-5   |
+    |[5.0,2.0,1.0,0.0,1.0,885.0,7.98,102.0]   |2    |
+    |[7.0,2.0,6.0,1.0,0.0,1180.0,10.83,135.0] |54   |
+    +-----------------------------------------+-----+
+    only showing top 5 rows
+
+e) Train/test split
+
+To objectively assess a Machine Learning model you need to be able to test it on an independent set of data. You can't use the same data that you used to train the model: of course the model will perform (relatively) well on those data!
+
+You will split the data into two components:
+training data (used to train the model) and
+testing data (used to test the model).
+
+To objectively assess a Machine Learning model you need to be able to test it on an independent set of data. You can't use the same data that you used to train the model: of course the model will perform (relatively) well on those data!
+
+# Split into training and testing sets in a 80:20 ratio
+flights_train, flights_test = flights.randomSplit([0.8, 0.2], seed=43)
+
+# Check that training set has around 80% of records
+training_ratio = flights_train.count() / flights.count()
+print(training_ratio)
+=> Output: <script.py> output:
+    0.8035334184759472
+
+f) Build a Decision Tree
+
+# Import the Decision Tree Classifier class
+from pyspark.ml.classification import DecisionTreeClassifier
+
+# Create a classifier object and fit to the training data
+tree = DecisionTreeClassifier()
+tree_model = tree.fit(flights_train)
+
+# Create predictions for the testing data and take a look at the predictions
+prediction = tree_model.transform(flights_test)
+prediction.select('label', 'prediction', 'probability').show(5, False)
+=> Output: <script.py> output:
+    +-----+----------+----------------------------------------+
+    |label|prediction|probability                             |
+    +-----+----------+----------------------------------------+
+    |1    |1.0       |[0.33779477374123645,0.6622052262587635]|
+    |1    |1.0       |[0.33779477374123645,0.6622052262587635]|
+    |1    |1.0       |[0.33779477374123645,0.6622052262587635]|
+    |0    |1.0       |[0.16666666666666666,0.8333333333333334]|
+    |1    |1.0       |[0.33779477374123645,0.6622052262587635]|
+    +-----+----------+----------------------------------------+
+    only showing top 5 rows
+
+g) Evaluate the Decision Tree
+
+You can assess the quality of your model by evaluating how well it performs on the testing data. Because the model was not trained on these data, this represents an objective assessment of the model.
+
+A confusion matrix gives a useful breakdown of predictions versus known values. It has four cells which represent the counts of:
+
+True Negatives (TN) — model predicts negative outcome & known outcome is negative
+True Positives (TP) — model predicts positive outcome & known outcome is positive
+False Negatives (FN) — model predicts negative outcome but known outcome is positive
+False Positives (FP) — model predicts positive outcome but known outcome is negative.
+These counts (TN, TP, FN and FP) should sum to the number of records in the testing data, which is only a subset of the flights data. You can compare to the number of records in the tests data, which is flights_test.count().
+
+Note: These predictions are made on the testing data, so the counts are smaller than they would have been for predictions on the training data.
+
+# Create a confusion matrix
+prediction.groupBy('label', 'prediction').count().show()
+
+# Calculate the elements of the confusion matrix
+TN = prediction.filter('prediction = 0 AND label = prediction').count()
+TP = prediction.filter('prediction = 1 AND label = prediction').count()
+FN = prediction.filter('prediction = 0 AND label != prediction').count()
+FP = prediction.filter('prediction = 1 AND label != prediction').count()
+
+# Accuracy measures the proportion of correct predictions
+accuracy = (TN + TP) / (TN + TP + FN + FP)
+print(accuracy)
+=> Output: <script.py> output:
+    +-----+----------+-----+
+    |label|prediction|count|
+    +-----+----------+-----+
+    |    1|       0.0|  196|
+    |    0|       0.0|  310|
+    |    1|       1.0|  255|
+    |    0|       1.0|  162|
+    +-----+----------+-----+
+    
+    0.6121343445287107
+
+h) Build a Logistic Regression model
+
+You've already built a Decision Tree model using the flights data. Now you're going to create a Logistic Regression model on the same data. The objective is to predict whether a flight is likely to be delayed by at least 15 minutes (label 1) or not (label 0).
+
+First few rows from the flights DataFrame:
+
++---+------+--------+-----------------+-----+
+|mon|depart|duration|features         |label|
++---+------+--------+-----------------+-----+
+|0  |16.33 |82      |[0.0,16.33,82.0] |1    |
+|2  |6.17  |82      |[2.0,6.17,82.0]  |0    |
+|9  |10.33 |195     |[9.0,10.33,195.0]|0    |
+|5  |7.98  |102     |[5.0,7.98,102.0] |0    |
+|7  |10.83 |135     |[7.0,10.83,135.0]|1    |
++---+------+--------+-----------------+-----+
+only showing top 5 rows
+
+# Import the logistic regression class
+from pyspark.ml.classification import LogisticRegression
+
+# Create a classifier object and train on training data
+logistic = LogisticRegression().fit(flights_train)
+
+# Create predictions for the testing data and show confusion matrix
+prediction = logistic.transform(flights_test)
+prediction.groupBy('label', 'prediction').count().show()
+=> Output: <script.py> output:
+    +-----+----------+-----+
+    |label|prediction|count|
+    +-----+----------+-----+
+    |    1|       0.0|  184|
+    |    0|       0.0|  266|
+    |    1|       1.0|  281|
+    |    0|       1.0|  192|
+    +-----+----------+-----+
+
+i) Evaluate the Logistic Regression model
+
+Accuracy is generally not a very reliable metric because it can be biased by the most common target class. There are two other useful metrics: precision and recall.
+
+Precision is the proportion of positive predictions which are correct. For all flights which are predicted to be delayed, what proportion is actually delayed?
+Recall is the proportion of positives outcomes which are correctly predicted. For all delayed flights, what proportion is correctly predicted by the model?
+
+The precision and recall are generally formulated in terms of the positive target class. But it's also possible to calculate weighted versions of these metrics which look at both target classes.
+
+First few predictions from the Logistic Regression model:
+
++-----+----------+----------------------------------------+
+|label|prediction|probability                             |
++-----+----------+----------------------------------------+
+|0    |0.0       |[0.590336811217537,0.409663188782463]   |
+|0    |0.0       |[0.5583926073738735,0.44160739262612647]|
+|1    |0.0       |[0.5910859736476811,0.4089140263523189] |
+|0    |1.0       |[0.4395548533655815,0.5604451466344185] |
+|0    |0.0       |[0.5838431113709802,0.4161568886290198] |
++-----+----------+----------------------------------------+
+only showing top 5 rows
+
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator, BinaryClassificationEvaluator
+
+# Calculate precision and recall
+precision = TP / (TP + FP)
+recall = TP / (TP + FN)
+print('precision = {:.2f}\nrecall    = {:.2f}'.format(precision, recall))
+
+# Find weighted precision
+multi_evaluator = MulticlassClassificationEvaluator()
+weighted_precision = multi_evaluator.evaluate(prediction, {multi_evaluator.metricName: "weightedPrecision"})
+
+# Find AUC
+binary_evaluator = BinaryClassificationEvaluator()
+auc = binary_evaluator.evaluate(prediction, {binary_evaluator.metricName: "areaUnderROC"})
+=> Output: <script.py> output:
+    precision = 0.59
+    recall    = 0.60
+
+j) Punctuation, numbers and tokens
+
+At the end of the previous chapter you loaded a dataset of SMS messages which had been labeled as either "spam" (label 1) or "ham" (label 0). You're now going to use those data to build a classifier model.
+
+But first you'll need to prepare the SMS messages as follows:
+remove punctuation and numbers
+tokenize (split into individual words)
+remove stop words
+apply the hashing trick
+convert to TF-IDF representation.
+
+First few rows from the sms DataFrame:
+
++---+-------------------------------------------+-----+
+|id |text                                       |label|
++---+-------------------------------------------+-----+
+|1  |Sorry, I'll call later in meeting          |0    |
+|2  |Dont worry. I guess he's busy.             |0    |
+|3  |Call FREEPHONE 0800 542 0578 now!          |1    |
+|4  |Win a 1000 cash prize or a prize worth 5000|1    |
++---+-------------------------------------------+-----+
+only showing top 4 rows
+
+# Import the necessary functions
+from pyspark.sql.functions import regexp_replace
+from pyspark.ml.feature import Tokenizer
+
+# Remove punctuation (REGEX provided) and numbers
+wrangled = sms.withColumn('text', regexp_replace(sms.text, '[_():;,.!?\\-]', ' '))
+wrangled = wrangled.withColumn('text', regexp_replace(wrangled.text, '[0-9]', ' '))
+
+# Merge multiple spaces
+wrangled = wrangled.withColumn('text', regexp_replace(wrangled.text, ' +', ' '))
+
+# Split the text into words
+wrangled = Tokenizer(inputCol='text', outputCol='words').transform(wrangled)
+
+wrangled.show(4, truncate=False)
+=> <script.py> output:
+    +---+----------------------------------+-----+------------------------------------------+
+    |id |text                              |label|words                                     |
+    +---+----------------------------------+-----+------------------------------------------+
+    |1  |Sorry I'll call later in meeting  |0    |[sorry, i'll, call, later, in, meeting]   |
+    |2  |Dont worry I guess he's busy      |0    |[dont, worry, i, guess, he's, busy]       |
+    |3  |Call FREEPHONE now                |1    |[call, freephone, now]                    |
+    |4  |Win a cash prize or a prize worth |1    |[win, a, cash, prize, or, a, prize, worth]|
+    +---+----------------------------------+-----+------------------------------------------+
+    only showing top 4 rows
+
+k) Stopwords and hashing
+
+The next steps will be to remove stopwords and then apply the hashing trick, converting the results into a TF-IDF.
+
+A quick reminder about these concepts:
+
+The hashing trick provides a fast and space-efficient way to map a very large (possibly infinite) set of items (in this case, all words contained in the SMS messages) onto a smaller, finite number of values.
+The TF-IDF matrix reflects how important a word is to each document. It takes into account both the frequency of the word within each document but also the frequency of the word across all of the documents in the collection.
+
+First few rows from the sms DataFrame:
+
++---+---------------------------------------------------------------------------------------------------------------------------+-----+
+|id |words                                                                                                                      |label|
++---+---------------------------------------------------------------------------------------------------------------------------+-----+
+|1  |[sorry, i'll, call, later, in, meeting]                                                                                    |0    |
+|2  |[dont, worry, i, guess, he's, busy]                                                                                        |0    |
+|3  |[call, freephone, now]                                                                                                     |1    |
+|4  |[win, a, cash, prize, or, a, prize, worth]                                                                                 |1    |
+|5  |[go, until, jurong, point, crazy, available, only, in, bugis, n, great, world, la, e, buffet, cine, there, got, amore, wat]|0    |
++---+---------------------------------------------------------------------------------------------------------------------------+-----+
+only showing top 5 rows
+
+from pyspark.ml.feature import StopWordsRemover, HashingTF, IDF
+
+# Remove stopwords
+wrangled = StopWordsRemover(inputCol='words', outputCol='terms')\
+      .transform(sms)
+
+# Apply the hashing trick
+wrangled = HashingTF(inputCol='terms', outputCol='hash', numFeatures=1024)\
+      .transform(wrangled)
+
+# Convert hashed symbols to TF-IDF
+tf_idf = IDF(inputCol='hash', outputCol='features')\
+      .fit(wrangled).transform(wrangled)
+      
+tf_idf.select('terms', 'features').show(4, truncate=False)
+=> Output: <script.py> output:
+    +--------------------------------+----------------------------------------------------------------------------------------------------+
+    |terms                           |features                                                                                            |
+    +--------------------------------+----------------------------------------------------------------------------------------------------+
+    |[sorry, call, later, meeting]   |(1024,[138,384,577,996],[2.273418200008753,3.6288353225642043,3.5890949939146903,4.104259019279279])|
+    |[dont, worry, guess, busy]      |(1024,[215,233,276,329],[3.9913186080986836,3.3790235241678332,4.734227298217693,4.58299632849377]) |
+    |[call, freephone]               |(1024,[133,138],[5.367951058306837,2.273418200008753])                                              |
+    |[win, cash, prize, prize, worth]|(1024,[31,47,62,389],[3.6632029660684124,4.754846585420428,4.072170704727778,7.064594791043114])    |
+    +--------------------------------+----------------------------------------------------------------------------------------------------+
+    only showing top 4 rows
+
+l) Training a spam classifier
+
+The SMS data have now been prepared for building a classifier. Specifically, this is what you have done:
+removed numbers and punctuation
+split the messages into words (or "tokens")
+removed stop words
+applied the hashing trick and
+converted to a TF-IDF representation.
+Next you'll need to split the TF-IDF data into training and testing sets. Then you'll use the training data to fit a Logistic Regression model and finally evaluate the performance of that model on the testing data.
+
+Selected columns from first few rows of the sms DataFrame:
+
++-----+--------------------+
+|label|            features|
++-----+--------------------+
+|    0|(1024,[138,384,57...|
+|    0|(1024,[215,233,27...|
+|    1|(1024,[133,138],[...|
+|    1|(1024,[31,47,62,3...|
+|    0|(1024,[12,171,191...|
++-----+--------------------+
+only showing top 5 rows
+
+# Split the data into training and testing sets
+sms_train, sms_test = sms.randomSplit([0.8, 0.2], seed=13)
+
+# Fit a Logistic Regression model to the training data
+logistic = LogisticRegression(regParam=0.2).fit(sms_train)
+
+# Make predictions on the testing data
+prediction = logistic.transform(sms_test)
+
+# Create a confusion matrix, comparing predictions to known labels
+prediction.groupBy('label', 'prediction').count().show()
+=> Output: <script.py> output:
+    +-----+----------+-----+
+    |label|prediction|count|
+    +-----+----------+-----+
+    |    1|       0.0|   41|
+    |    0|       0.0|  948|
+    |    1|       1.0|  105|
+    |    0|       1.0|    2|
+    +-----+----------+-----+
+
+
+## CHAPTER 3: REGRESSION
+
+a) Encoding flight origin
+
+The org column in the flights data is a categorical variable giving the airport from which a flight departs.
+
+ORD — O'Hare International Airport (Chicago)
+SFO — San Francisco International Airport
+JFK — John F Kennedy International Airport (New York)
+LGA — La Guardia Airport (New York)
+SMF — Sacramento
+SJC — San Jose
+OGG — Kahului (Hawaii)
+Obviously this is only a small subset of airports. Nevertheless, since this is a categorical variable, it needs to be one-hot encoded before it can be used in a regression model.
+
+Subset from the flights DataFrame:
+
++---+-------+
+|org|org_idx|
++---+-------+
+|JFK|2.0    |
+|ORD|0.0    |
+|SFO|1.0    |
+|ORD|0.0    |
+|ORD|0.0    |
++---+-------+
+only showing top 5 rows
+
+# Import the one hot encoder class
+from pyspark.ml.feature import OneHotEncoder
+
+# Create an instance of the one hot encoder
+onehot = OneHotEncoder(inputCols=['org_idx'], outputCols=['org_dummy'])
+
+# Apply the one hot encoder to the flights data
+onehot = onehot.fit(flights)
+flights_onehot = onehot.transform(flights)
+
+# Check the results
+flights_onehot.select('org', 'org_idx', 'org_dummy').distinct().sort('org_idx').show()
+=> Output: <script.py> output:
+    +---+-------+-------------+
+    |org|org_idx|    org_dummy|
+    +---+-------+-------------+
+    |ORD|    0.0|(7,[0],[1.0])|
+    |SFO|    1.0|(7,[1],[1.0])|
+    |JFK|    2.0|(7,[2],[1.0])|
+    |LGA|    3.0|(7,[3],[1.0])|
+    |SJC|    4.0|(7,[4],[1.0])|
+    |SMF|    5.0|(7,[5],[1.0])|
+    |TUS|    6.0|(7,[6],[1.0])|
+    |OGG|    7.0|    (7,[],[])|
+    +---+-------+-------------+
+
+b) Flight duration model: Just distance
+
+In this exercise you'll build a regression model to predict flight duration (the duration column). For the moment you'll keep the model simple, including only the distance of the flight (the km column) as a predictor. The data are in flights. The first few records are displayed in the terminal. These data have also been split into training and testing sets and are available as flights_train and flights_test.
+
+Subset from the flights DataFrame:
+
++------+--------+--------+
+|km    |features|duration|
++------+--------+--------+
+|3465.0|[3465.0]|351     |
+|509.0 |[509.0] |82      |
+|542.0 |[542.0] |82      |
+|1989.0|[1989.0]|195     |
+|415.0 |[415.0] |65      |
++------+--------+--------+
+only showing top 5 rows
+
+from pyspark.ml.regression import LinearRegression
+from pyspark.ml.evaluation import RegressionEvaluator
+
+# Create a regression object and train on training data
+regression = LinearRegression(labelCol='duration').fit(flights_train)
+
+# Create predictions for the testing data and take a look at the predictions
+predictions = regression.transform(flights_test)
+predictions.select('duration', 'prediction').show(5, False)
+
+# Calculate the RMSE
+RegressionEvaluator(labelCol='duration').evaluate(predictions)
+=> Output: <script.py> output:
+    +--------+------------------+
+    |duration|prediction        |
+    +--------+------------------+
+    |105     |118.60747064619201|
+    |115     |70.00972888630639 |
+    |153     |152.217123825926  |
+    |280     |268.94254095013724|
+    |297     |338.7355594900353 |
+    +--------+------------------+
+    only showing top 5 rows
+
+c) Interpreting the coefficients
+
+The linear regression model for flight duration as a function of distance takes the form
+duration = alpha + beta * distance
+
+where
+
+alpha — intercept (component of duration which does not depend on distance) and
+beta — coefficient (rate at which duration increases as a function of distance; also called the slope).
+
+By looking at the coefficients of your model you will be able to infer
+- how much of the average flight duration is actually spent on the ground and
+- what the average speed is during a flight.
+
+# Intercept (average minutes on ground)
+inter = regression.intercept
+print(inter)
+
+# Coefficients
+coefs = regression.coefficients
+print(coefs)
+
+# Average minutes per km
+minutes_per_km = regression.coefficients[0]
+print(minutes_per_km)
+
+# Average speed in km per hour
+avg_speed = 60 / minutes_per_km
+print(avg_speed)
+=> Output: <script.py> output:
+    44.39649642725724
+    [0.07564897327351065]
+    0.07564897327351065
+    793.1370037643285
+
+d) Flight duration model: Adding origin airport
+
+Some airports are busier than others. Some airports are bigger than others too. Flights departing from large or busy airports are likely to spend more time taxiing or waiting for their takeoff slot. So it stands to reason that the duration of a flight might depend not only on the distance being covered but also the airport from which the flight departs.
+
+You are going to make the regression model a little more sophisticated by including the departure airport as a predictor.
+
+Subset from the flights DataFrame:
+
++------+-------+-------------+----------------------+
+|km    |org_idx|org_dummy    |features              |
++------+-------+-------------+----------------------+
+|3465.0|2.0    |(7,[2],[1.0])|(8,[0,3],[3465.0,1.0])|
+|509.0 |0.0    |(7,[0],[1.0])|(8,[0,1],[509.0,1.0]) |
+|542.0 |1.0    |(7,[1],[1.0])|(8,[0,2],[542.0,1.0]) |
+|1989.0|0.0    |(7,[0],[1.0])|(8,[0,1],[1989.0,1.0])|
+|415.0 |0.0    |(7,[0],[1.0])|(8,[0,1],[415.0,1.0]) |
++------+-------+-------------+----------------------+
+only showing top 5 rows
+
+from pyspark.ml.regression import LinearRegression
+from pyspark.ml.evaluation import RegressionEvaluator
+
+# Create a regression object and train on training data
+regression = LinearRegression(labelCol='duration').fit(flights_train)
+
+# Create predictions for the testing data
+predictions = regression.transform(flights_test)
+
+# Calculate the RMSE on testing data
+RegressionEvaluator(labelCol='duration').evaluate(predictions)
+
+e) Interpreting coefficients
+
+Remember that origin airport, org, has eight possible values (ORD, SFO, JFK, LGA, SMF, SJC, TUS and OGG) which have been one-hot encoded to seven dummy variables in org_dummy.
+The values for km and org_dummy have been assembled into features, which has eight columns with sparse representation. Column indices in features are as follows:
+0 — km
+1 — ORD
+2 — SFO
+3 — JFK
+4 — LGA
+5 — SMF
+6 — SJC and
+7 — TUS.
+Note that OGG does not appear in this list because it is the reference level for the origin airport category.
+
+An instance of LinearRegression is available in regression. In this exercise you'll be using the intercept and coefficients attributes to interpret the model.
+The coefficients attribute is a list, where the first element indicates how flight duration changes with flight distance.
+
+# Average speed in km per hour
+avg_speed_hour = 60 / regression.coefficients[0]
+print(avg_speed_hour)
+
+# Average minutes on ground at OGG
+inter = regression.intercept
+print(inter)
+
+# Average minutes on ground at JFK
+avg_ground_jfk = inter + regression.coefficients[3]
+print(avg_ground_jfk)
+
+# Average minutes on ground at LGA
+avg_ground_lga = inter + regression.coefficients[4]
+print(avg_ground_lga)
+=> Output: <script.py> output:
+    807.3532921277102
+    15.919322370859733
+    68.47934825680085
+    62.56739402536399
+
+f) Bucketing departure time
+
+Time of day data are a challenge with regression models. They are also a great candidate for bucketing.
+
+In this lesson you will convert the flight departure times from numeric values between 0 (corresponding to 00:00) and 24 (corresponding to 24:00) to binned values. You'll then take those binned values and one-hot encode them.
+
+from pyspark.ml.feature import Bucketizer, OneHotEncoder
+
+# Create buckets at 3 hour intervals through the day
+buckets = Bucketizer(splits=[0, 3, 6, 9, 12, 15, 18, 21, 24], inputCol='depart', outputCol='depart_bucket')
+
+# Bucket the departure times
+bucketed = buckets.transform(flights)
+bucketed.select('depart', 'depart_bucket').show(5)
+
+# Create a one-hot encoder
+onehot = OneHotEncoder(inputCols=['depart_bucket'], outputCols=['depart_dummy'])
+
+# One-hot encode the bucketed departure times
+flights_onehot = onehot.fit(bucketed).transform(bucketed)
+flights_onehot.select('depart', 'depart_bucket', 'depart_dummy').show(5)
+=> Output: <script.py> output:
+    +------+-------------+
+    |depart|depart_bucket|
+    +------+-------------+
+    |  9.48|          3.0|
+    | 16.33|          5.0|
+    |  6.17|          2.0|
+    | 10.33|          3.0|
+    |  8.92|          2.0|
+    +------+-------------+
+    only showing top 5 rows
+    
+    +------+-------------+-------------+
+    |depart|depart_bucket| depart_dummy|
+    +------+-------------+-------------+
+    |  9.48|          3.0|(7,[3],[1.0])|
+    | 16.33|          5.0|(7,[5],[1.0])|
+    |  6.17|          2.0|(7,[2],[1.0])|
+    | 10.33|          3.0|(7,[3],[1.0])|
+    |  8.92|          2.0|(7,[2],[1.0])|
+    +------+-------------+-------------+
+    only showing top 5 rows
+
+g) Flight duration model: Adding departure time
+
+In the previous exercise the departure time was bucketed and converted to dummy variables. Now you're going to include those dummy variables in a regression model for flight duration. The data are in flights. The km, org_dummy and depart_dummy columns have been assembled into features, where km is index 0, org_dummy runs from index 1 to 7 and depart_dummy from index 8 to 14.
+Feature columns:
+
+ 0 — km
+ 1 — ORD
+ 2 — SFO
+ 3 — JFK
+ 4 — LGA
+ 5 — SJC
+ 6 — SMF
+ 7 — TUS
+ 8 — 00:00 to 03:00
+ 9 — 03:00 to 06:00
+10 — 06:00 to 09:00
+11 — 09:00 to 12:00
+12 — 12:00 to 15:00
+13 — 15:00 to 18:00
+14 — 18:00 to 21:00
+
+# Find the RMSE on testing data
+from pyspark.ml.evaluation import RegressionEvaluator
+rmse = RegressionEvaluator(labelCol='duration').evaluate(predictions)
+print("The test RMSE is", rmse)
+
+# Average minutes on ground at OGG for flights departing between 21:00 and 24:00
+avg_eve_ogg = regression.intercept
+print(avg_eve_ogg)
+
+# Average minutes on ground at OGG for flights departing between 03:00 and 06:00
+avg_night_ogg = regression.intercept + regression.coefficients[9]
+print(avg_night_ogg)
+
+# Average minutes on ground at JFK for flights departing between 03:00 and 06:00
+avg_night_jfk = regression.intercept + regression.coefficients[9] + regression.coefficients[3]
+print(avg_night_jfk)
+=> Output: <script.py> output:
+    The test RMSE is 10.68279557023109
+    10.470157159054379
+    11.624196487368046
+    63.27068482148962
+
+h) Flight duration model: More features!
+
+Let's add more features to our model. This will not necessarily result in a better model. Adding some features might improve the model. Adding other features might make it worse. More features will always make the model more complicated and difficult to interpret.
+
+These are the features you'll include in the next model:
+km
+org (origin airport, one-hot encoded, 8 levels)
+depart (departure time, binned in 3 hour intervals, one-hot encoded, 8 levels)
+dow (departure day of week, one-hot encoded, 7 levels) and
+mon (departure month, one-hot encoded, 12 levels).
+These have been assembled into the features column, which is a sparse representation of 32 columns (remember one-hot encoding produces a number of columns which is one fewer than the number of levels).
+
+Subset from the flights DataFrame:
+
++--------------------------------------------+--------+
+|features                                    |duration|
++--------------------------------------------+--------+
+|(32,[0,3,11],[3465.0,1.0,1.0])              |351     |
+|(32,[0,1,13,17,21],[509.0,1.0,1.0,1.0,1.0]) |82      |
+|(32,[0,2,10,19,23],[542.0,1.0,1.0,1.0,1.0]) |82      |
+|(32,[0,1,11,16,30],[1989.0,1.0,1.0,1.0,1.0])|195     |
+|(32,[0,1,10,20,25],[415.0,1.0,1.0,1.0,1.0]) |65      |
++--------------------------------------------+--------+
+only showing top 5 rows
+
+from pyspark.ml.regression import LinearRegression
+from pyspark.ml.evaluation import RegressionEvaluator
+
+# Fit linear regression model to training data
+regression = LinearRegression(labelCol='duration').fit(flights_train)
+
+# Make predictions on testing data
+predictions = regression.transform(flights_test)
+
+# Calculate the RMSE on testing data
+rmse = RegressionEvaluator(labelCol='duration').evaluate(predictions)
+print("The test RMSE is", rmse)
+
+# Look at the model coefficients
+coeffs = regression.coefficients
+print(coeffs)
+=> Output: <script.py> output:
+    The test RMSE is 11.365305439060927
+    [0.07501031828141558,8.142022178617815,1.9820682797840434,31.35200597151242,25.41714254232245,-4.623658665147774,0.26789066934727496,-19.53779020644877,-21.36533978107461,-2.275724472717732,4.0708892655217195,7.188695099429053,6.230009289260946,9.23914460779261,9.407139218398104,-0.406605376327033,-0.37892429461733884,-0.9488078315116927,-2.6385224675372783,-1.7983375659149132,-1.799881551307039,-3.680205782747358,-5.521109168371135,-4.185511925438515,-4.136824257279186,-8.8031014838187,-5.950685273869763,-4.704637592254719,-4.927889131206545,-7.802764852885003,-4.282872899635541,-3.337649339329471]
+
+i) Flight duration model: Regularization!
+
+In the previous exercise you added more predictors to the flight duration model. The model performed well on testing data, but with so many coefficients it was difficult to interpret. In this exercise you'll use Lasso regression (regularized with a L1 penalty) to create a more parsimonious model. Many of the coefficients in the resulting model will be set to zero. This means that only a subset of the predictors actually contribute to the model. Despite the simpler model, it still produces a good RMSE on the testing data.
+
+from pyspark.ml.regression import LinearRegression
+from pyspark.ml.evaluation import RegressionEvaluator
+
+# Fit Lasso model (λ = 1, α = 1) to training data
+regression = LinearRegression(labelCol='duration', regParam=1, elasticNetParam=1).fit(flights_train)
+
+# Calculate the RMSE on testing data
+rmse = RegressionEvaluator(labelCol='duration').evaluate(regression.transform(flights_test))
+print("The test RMSE is", rmse)
+
+# Look at the model coefficients
+coeffs = regression.coefficients
+print(coeffs)
+
+# Number of zero coefficients
+zero_coeff = sum([beta == 0 for beta in regression.coefficients])
+print("Number of coefficients equal to 0:", zero_coeff)
+=> Output: <script.py> output:
+    The test RMSE is 11.847247620737766
+    [0.07344906677784574,1.4137375580081961,-2.6351822824590694,24.553439498948325,17.75959505190589,-5.839936949637352,-3.4762916785809956,-17.899747838796426,0.0,0.0,0.0,0.0,0.0,0.6335877870029832,0.46819806830962624,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
+    Number of coefficients equal to 0: 22
+
+
+## CHAPTER 4: ENSEMBLES & PIPELINES
+
+a) Flight duration model: Pipeline stages
+
+The first few rows of the flights DataFrame:
+
++---+---+---+-------+------+---+------+--------+-----+------+
+|mon|dom|dow|carrier|flight|org|depart|duration|delay|km    |
++---+---+---+-------+------+---+------+--------+-----+------+
+|11 |20 |6  |US     |19    |JFK|9.48  |351     |null |3465.0|
+|0  |22 |2  |UA     |1107  |ORD|16.33 |82      |30   |509.0 |
+|2  |20 |4  |UA     |226   |SFO|6.17  |82      |-8   |542.0 |
+|9  |13 |1  |AA     |419   |ORD|10.33 |195     |-5   |1989.0|
+|4  |2  |5  |AA     |325   |ORD|8.92  |65      |null |415.0 |
++---+---+---+-------+------+---+------+--------+-----+------+
+only showing top 5 rows
+
+# Convert categorical strings to index values
+indexer = StringIndexer(inputCol='org', outputCol='org_idx')
+
+# One-hot encode index values
+onehot = OneHotEncoder(
+    inputCols=['org_idx', 'dow'],
+    outputCols=['org_dummy', 'dow_dummy']
+)
+
+# Assemble predictors into a single column
+assembler = VectorAssembler(inputCols=['km', 'org_dummy', 'dow_dummy'], outputCol='features')
+
+# A linear regression object
+regression = LinearRegression(labelCol='duration')
+
+b) Flight duration model: Pipeline model
+
+You're now ready to put those stages together in a pipeline. You'll construct the pipeline and then train the pipeline on the training data. This will apply each of the individual stages in the pipeline to the training data in turn. None of the stages will be exposed to the testing data at all: there will be no leakage! Once the entire pipeline has been trained it will then be used to make predictions on the testing data.
+
+# Import class for creating a pipeline
+from pyspark.ml import Pipeline
+
+# Construct a pipeline
+pipeline = Pipeline(stages=[indexer, onehot, assembler, regression])
+
+# Train the pipeline on the training data
+pipeline = pipeline.fit(flights_train)
+
+# Make predictions on the testing data
+predictions = pipeline.transform(flights_test)
+
+c) SMS spam pipeline
+
+You haven't looked at the SMS data for quite a while. Last time we did the following:
+split the text into tokens
+removed stop words
+applied the hashing trick
+converted the data from counts to IDF and
+trained a logistic regression model.
+Each of these steps was done independently. This seems like a great application for a pipeline!
+
+Selected columns from first few rows of the sms DataFrame:
+
++---+---------------------------------+-----+
+|id |text                             |label|
++---+---------------------------------+-----+
+|1  |Sorry I'll call later in meeting |0    |
+|2  |Dont worry I guess he's busy     |0    |
+|3  |Call FREEPHONE now               |1    |
+|4  |Win a cash prize or a prize worth|1    |
++---+---------------------------------+-----+
+only showing top 4 rows
+
+from pyspark.ml.feature import Tokenizer, StopWordsRemover, HashingTF, IDF
+
+# Break text into tokens at non-word characters
+tokenizer = Tokenizer(inputCol='text', outputCol='words')
+
+# Remove stop words
+remover = StopWordsRemover(inputCol=tokenizer.getOutputCol(), outputCol='terms')
+
+# Apply the hashing trick and transform to TF-IDF
+hasher = HashingTF(inputCol=remover.getOutputCol(), outputCol="hash")
+idf = IDF(inputCol=hasher.getOutputCol(), outputCol="features")
+
+# Create a logistic regression object and add everything to a pipeline
+logistic = LogisticRegression()
+pipeline = Pipeline(stages=[tokenizer, remover, hasher, idf, logistic])
+
+d) Cross validating simple flight duration model
+
+You've already built a few models for predicting flight duration and evaluated them with a simple train/test split. However, cross-validation provides a much better way to evaluate model performance. In this exercise you're going to train a simple model for flight duration using cross-validation. Travel time is usually strongly correlated with distance, so using the km column alone should give a decent model.
+
+Subset from the flights DataFrame:
+
++------+--------+--------+
+|km    |features|duration|
++------+--------+--------+
+|2317.0|[2317.0]|232     |
+|2943.0|[2943.0]|250     |
+|1574.0|[1574.0]|160     |
+|2808.0|[2808.0]|264     |
+|1765.0|[1765.0]|190     |
++------+--------+--------+
+only showing top 5 rows
+
+# Create an empty parameter grid
+params = ParamGridBuilder().build()
+
+# Create objects for building and evaluating a regression model
+regression = LinearRegression(labelCol='duration')
+evaluator = RegressionEvaluator(labelCol='duration')
+
+# Create a cross validator
+cv = CrossValidator(estimator=regression, estimatorParamMaps=params, evaluator=evaluator, numFolds=5)
+
+# Train and test model on multiple folds of the training data
+cv = cv.fit(flights_train)
+
+# NOTE: Since cross-validation builds multiple models, the fit() method can take a little while to complete.
+
+e) Cross validating flight duration model pipeline
+
+The cross-validated model that you just built was simple, using km alone to predict duration. Another important predictor of flight duration is the origin airport. Flights generally take longer to get into the air from busy airports. Let's see if adding this predictor improves the model! In this exercise you'll add the org field to the model. However, since org is categorical, there's more work to be done before it can be included: it must first be transformed to an index and then one-hot encoded before being assembled with km and used to build the regression model.
+
+# Create an indexer for the org field
+indexer = StringIndexer(inputCol='org', outputCol='org_idx')
+
+# Create an one-hot encoder for the indexed org field
+onehot = OneHotEncoder(inputCols=['org_idx'], outputCols=['org_dummy'])
+
+# Assemble the km and one-hot encoded fields
+assembler = VectorAssembler(inputCols=['km', 'org_dummy'], outputCol='features')
+
+# Create a pipeline and cross-validator.
+pipeline = Pipeline(stages=[indexer, onehot, assembler, regression])
+cv = CrossValidator(estimator=pipeline,
+                    estimatorParamMaps=params,
+                    evaluator=evaluator)
+
+f) Optimizing flights linear regression
+
+Up until now you've been using the default hyper-parameters when building your models. In this exercise you'll use cross validation to choose an optimal (or close to optimal) set of model hyper-parameters.
+
+# Create parameter grid
+params = ParamGridBuilder()
+
+# Add grids for two parameters
+params = params.addGrid(regression.regParam, [0.01, 0.1, 1.0, 10.0]) \
+               .addGrid(regression.elasticNetParam, [0.0, 0.5, 1.0])
+
+# Build the parameter grid
+params = params.build()
+print('Number of models to be tested: ', len(params))
+
+# Create cross-validator
+cv = CrossValidator(estimator=pipeline, estimatorParamMaps=params, evaluator=evaluator, numFolds=5)
+=> Output: <script.py> output:
+    Number of models to be tested:  12
+
+g) Dissecting the best flight duration model
+
+You just set up a CrossValidator to find good parameters for the linear regression model predicting flight duration. The model pipeline has multiple stages (objects of type StringIndexer, OneHotEncoder, VectorAssembler and LinearRegression), which operate in sequence. The stages are available as the stages attribute on the pipeline object. They are represented by a list and the stages are executed in the sequence in which they appear in the list.
+
+Now you're going to take a closer look at the pipeline, split out the stages and use it to make predictions on the testing data.
+
+# Get the best model from cross validation
+best_model = cv.bestModel
+
+# Look at the stages in the best model
+print(best_model.stages)
+
+# Get the parameters for the LinearRegression object in the best model
+best_model.stages[3].extractParamMap()
+
+# Generate predictions on testing data using the best model then calculate RMSE
+predictions = best_model.transform(flights_test)
+print("RMSE =", evaluator.evaluate(predictions))
+=> Output: <script.py> output:
+    [StringIndexerModel: uid=StringIndexer_14299b2d5472, handleInvalid=error, OneHotEncoderModel: uid=OneHotEncoderEstimator_9a650c117f1d, dropLast=true, handleInvalid=error, numInputCols=1, numOutputCols=1, VectorAssembler_933acae88a6e, LinearRegressionModel: uid=LinearRegression_9f5a93965597, numFeatures=8]
+    RMSE = 12.44394990230698
+
+h) SMS spam optimised
+
+The pipeline you built earlier for the SMS spam model used the default parameters for all of the elements in the pipeline. It's very unlikely that these parameters will give a particularly good model though. In this exercise you're going to run the pipeline for a selection of parameter values. We're going to do this in a systematic way: the values for each of the hyperparameters will be laid out on a grid and then pipeline will systematically run across each point in the grid.
+
+In this exercise you'll set up a parameter grid which can be used with cross validation to choose a good set of parameters for the SMS spam classifier.
+
+# Create parameter grid
+params = ParamGridBuilder()
+
+# Add grid for hashing trick parameters
+params = params.addGrid(hasher.numFeatures, [1024, 4096, 16384]) \
+               .addGrid(hasher.binary, [True, False])
+
+# Add grid for logistic regression parameters
+params = params.addGrid(logistic.regParam, [0.01, 0.1, 1.0, 10.0]) \
+               .addGrid(logistic.elasticNetParam, [0.0, 0.5, 1.0])
+
+# Build parameter grid
+params = params.build()
+
+i) Delayed flights with Gradient-Boosted Trees
+
+Subset of data from the flights DataFrame:
+
++---+------+--------+-----------------+-----+
+|mon|depart|duration|features         |label|
++---+------+--------+-----------------+-----+
+|0  |16.33 |82      |[0.0,16.33,82.0] |1    |
+|2  |6.17  |82      |[2.0,6.17,82.0]  |0    |
+|9  |10.33 |195     |[9.0,10.33,195.0]|0    |
+|5  |7.98  |102     |[5.0,7.98,102.0] |0    |
+|7  |10.83 |135     |[7.0,10.83,135.0]|1    |
++---+------+--------+-----------------+-----+
+only showing top 5 rows
+
+# Import the classes required
+from pyspark.ml.classification import DecisionTreeClassifier, GBTClassifier
+from pyspark.ml.evaluation import BinaryClassificationEvaluator
+
+# Create model objects and train on training data
+tree = DecisionTreeClassifier().fit(flights_train)
+gbt = GBTClassifier().fit(flights_train)
+
+# Compare AUC on testing data
+evaluator = BinaryClassificationEvaluator()
+print(evaluator.evaluate(tree.transform(flights_test)))
+print(evaluator.evaluate(gbt.transform(flights_test)))
+
+# Find the number of trees and the relative importance of features
+print(gbt.getNumTrees)
+print(gbt.featureImportances)
+=> <script.py> output:
+    0.6231821511315844
+    0.6861509674434977
+    20
+    (3,[0,1,2],[0.3663130411424131,0.3143221242420403,0.3193648346155466])
+
+j) Delayed flights with a Random Forest
+
+In this exercise you'll bring together cross validation and ensemble methods. You'll be training a Random Forest classifier to predict delayed flights, using cross validation to choose the best values for model parameters.
+
+You'll find good values for the following parameters:
+featureSubsetStrategy — the number of features to consider for splitting at each node and
+maxDepth — the maximum number of splits along any branch.
+
+Unfortunately building this model takes too long, so we won't be running the .fit() method on the pipeline.
+
+Subset of data from the flights DataFrame:
+
++---+------+--------+-----------------+-----+
+|mon|depart|duration|features         |label|
++---+------+--------+-----------------+-----+
+|11 |7.77  |60      |[11.0,7.77,60.0] |1    |
+|4  |13.25 |210     |[4.0,13.25,210.0]|0    |
+|3  |9.0   |264     |[3.0,9.0,264.0]  |0    |
+|5  |12.7  |158     |[5.0,12.7,158.0] |1    |
+|3  |17.58 |265     |[3.0,17.58,265.0]|1    |
++---+------+--------+-----------------+-----+
+only showing top 5 rows
+
+# Create a random forest classifier
+forest = RandomForestClassifier()
+
+# Create a parameter grid
+params = ParamGridBuilder() \
+            .addGrid(forest.featureSubsetStrategy, ['all', 'onethird', 'sqrt', 'log2']) \
+            .addGrid(forest.maxDepth, [2, 5, 10]) \
+            .build()
+
+# Create a binary classification evaluator
+evaluator = BinaryClassificationEvaluator()
+
+# Create a cross-validator
+cv = CrossValidator(estimator=forest, estimatorParamMaps=params, evaluator=evaluator, numFolds=5)
+
+k) Evaluating Random Forest
+
+# Average AUC for each parameter combination in grid
+print(cv.avgMetrics)
+
+# Average AUC for the best model
+print(max(cv.avgMetrics))
+
+# What's the optimal parameter value for maxDepth?
+print(cv.bestModel.explainParam('maxDepth'))
+# What's the optimal parameter value for featureSubsetStrategy?
+print(cv.bestModel.explainParam('featureSubsetStrategy'))
+
+# AUC for best model on testing data
+print(evaluator.evaluate(cv.transform(flights_test)))
+=> Output: <script.py> output:
+    [0.61550451929848, 0.661275302749083, 0.6832959983649716, 0.6790399103856084, 0.6404890400309002, 0.6659871420567183, 0.6808977119243277, 0.6867946590518151, 0.6414270561540629, 0.6653385916148042, 0.6832494433718275, 0.6851695159338953, 0.6414270561540629, 0.6653385916148042, 0.6832494433718275, 0.6851695159338953]
+    0.6867946590518151
+    maxDepth: Maximum depth of the tree. (>= 0) E.g., depth 0 means 1 leaf node; depth 1 means 1 internal node + 2 leaf nodes. Must be in range [0, 30]. (default: 5, current: 20)
+    featureSubsetStrategy: The number of features to consider for splits at each tree node. Supported options: 'auto' (choose automatically for task: If numTrees == 1, set to 'all'. If numTrees > 1 (forest), set to 'sqrt' for classification and to 'onethird' for regression), 'all' (use all features), 'onethird' (use 1/3 of the features), 'sqrt' (use sqrt(number of features)), 'log2' (use log2(number of features)), 'n' (when n is in the range (0, 1.0], use n * number of features. When n is in the range (1, number of features), use n features). default = 'auto' (default: auto, current: onethird)
+    0.7026685175668
